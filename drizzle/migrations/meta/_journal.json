@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1768319492142,
+      "tag": "0000_optimal_shard",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1768358957067,
+      "tag": "0001_petite_leper_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768378924655,
+      "tag": "0002_true_joystick",
+      "breakpoints": true
+    }
+  ]
+}

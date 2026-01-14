@@ -1,0 +1,127 @@
+import { eq } from 'drizzle-orm';
+import { createDb } from '../libs/db';
+import localConfig from '../libs/config';
+import { generateCode } from '../utils/codeGenerator';
+import { productsCategory, products } from '../../drizzle/schema';
+import {
+  ProductsCategory,
+  CreateProductsCategoryRequest,
+  UpdateProductsCategoryRequest,
+} from '../types/products_category.type';
+
+// Helper function to convert Drizzle result to our ProductsCategory type
+function convertToProductsCategory(drizzleCategory: any): ProductsCategory {
+  return {
+    id: drizzleCategory.id.toString(),
+    code: drizzleCategory.code,
+    name: drizzleCategory.name,
+    totalProduct: drizzleCategory.totalProduct,
+    status: drizzleCategory.status,
+  };
+}
+
+export class ProductsCategoryRepository {
+  async getAllProductsCategories(limit: number, offset: number): Promise<{
+    data: ProductsCategory[],
+    total: number
+  }> {
+    const db = createDb(localConfig.dbUrl)
+
+    const [dataResult, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(productsCategory)
+        .orderBy(productsCategory.createdAt)
+        .limit(limit)
+        .offset(offset),
+      db.$count(productsCategory)
+    ]);
+    return {
+      data: dataResult.map(convertToProductsCategory),
+      total: totalResult
+    };
+  }
+
+  async getProductsCategoryById(id: string): Promise<ProductsCategory | null> {
+    const db = createDb(localConfig.dbUrl)
+
+    const result = await db
+      .select()
+      .from(productsCategory)
+      .where(eq(productsCategory.id, parseInt(id)));
+    return result[0] ? convertToProductsCategory(result[0]) : null;
+  }
+
+  async getProductsCategoryByName(name: string): Promise<ProductsCategory | null> {
+    const db = createDb(localConfig.dbUrl)
+
+    const result = await db
+      .select()
+      .from(productsCategory)
+      .where(eq(productsCategory.name, name));
+    return result[0] ? convertToProductsCategory(result[0]) : null;
+  }
+
+  async createProductsCategory(categoryData: CreateProductsCategoryRequest): Promise<ProductsCategory> {
+    const db = createDb(localConfig.dbUrl)
+
+    const result = await db.insert(productsCategory).values({
+      code: generateCode('CAT'),
+      name: categoryData.name.toLowerCase(),
+      totalProduct: 0,
+      status: categoryData.status === 'true' ? true : false,
+    }).returning();
+    return convertToProductsCategory(result[0]);
+  }
+
+  async updateProductsCategory(id: string, updates: UpdateProductsCategoryRequest): Promise<
+    ProductsCategory | null
+  > {
+    const db = createDb(localConfig.dbUrl)
+
+    const updateData: any = { updatedAt: new Date() };
+
+    if (updates.name) updateData.name = updates.name;
+    if (updates.status) updateData.status = updates.status === 'true' ? true : false;
+
+    return await db.transaction(async (tx) => {
+      // update category
+      const category = await db
+        .update(productsCategory)
+        .set(updateData)
+        .where(eq(productsCategory.id, parseInt(id)))
+        .returning();
+
+      if (updates.status === 'false') {
+        // inactive product
+        await db
+          .update(products)
+          .set({ active: false })
+          .where(eq(products.categoryId, parseInt(id)))
+      }
+
+      return category[0] ? convertToProductsCategory(category[0]) : null;
+    })
+  }
+
+  async deleteProductsCategory(id: string): Promise<ProductsCategory | null> {
+    const db = createDb(localConfig.dbUrl)
+
+    return await db.transaction(async (tx) => {
+      // delete category
+      const category = await db
+        .update(productsCategory)
+        .set({ deletedAt: new Date() })
+        .where(eq(productsCategory.id, parseInt(id)))
+        .returning();
+
+      // inactive product
+      await db
+        .update(products)
+        .set({ active: false })
+        .where(eq(products.categoryId, parseInt(id)))
+
+      return category[0] ? convertToProductsCategory(category[0]) : null;
+    })
+  }
+}
