@@ -4,6 +4,7 @@ import companyRoutes from './routes/company.route'
 import userRoutes from './routes/user.route'
 import productsCategoryRoutes from './routes/products_category.route'
 import salesRoutes from './routes/sales.route'
+import transactionRoutes from './routes/transaction.route'
 
 const app = new Hono()
 
@@ -12,6 +13,7 @@ app.route('/', companyRoutes);
 app.route('/', userRoutes);
 app.route('/', productsCategoryRoutes);
 app.route('/', salesRoutes);
+app.route('/', transactionRoutes)
 
 app.get('/', (c) => { return c.text('POS Services API') })
 

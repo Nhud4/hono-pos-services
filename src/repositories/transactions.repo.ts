@@ -1,7 +1,7 @@
-import { eq } from 'drizzle-orm';
+import { eq, isNull, and, sql } from 'drizzle-orm';
 import { createDb } from '../libs/db';
 import localConfig from '../libs/config';
-import { transactions } from '../../drizzle/schema';
+import { transactions, transactionCounters } from '../../drizzle/schema';
 import { Transaction, CreateTransactionRequest, UpdateTransactionRequest } from '../types/transactions.type';
 
 // Helper function to convert Drizzle result to our Transaction type
@@ -30,14 +30,16 @@ function convertToTransaction(drizzleTransaction: any): Transaction {
 }
 
 export class TransactionsRepository {
-  async getAllTransactions(limit: number = 50, offset: number = 0): Promise<Transaction[]> {
+  async getAllTransactions(limit: number, offset: number): Promise<Transaction[]> {
     const db = createDb(localConfig.dbUrl)
 
     const result = await db
       .select()
       .from(transactions)
+      .where(isNull(transactions.deletedAt))
       .orderBy(transactions.createdAt)
-      .limit(limit).offset(offset);
+      .limit(limit)
+      .offset(offset);
     return result.map(convertToTransaction);
   }
 
@@ -47,15 +49,51 @@ export class TransactionsRepository {
     const result = await db
       .select()
       .from(transactions)
-      .where(eq(transactions.id, parseInt(id)));
+      .where(
+        and(
+          eq(transactions.id, parseInt(id)),
+          isNull(transactions.deletedAt)
+        )
+      );
     return result[0] ? convertToTransaction(result[0]) : null;
+  }
+
+  async generateTransactionCode(prefix: string): Promise<string> {
+    const db = createDb(localConfig.dbUrl)
+
+    const now = new Date()
+    const yy = String(now.getFullYear()).slice(-2)
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const dd = String(now.getDate()).padStart(2, '0')
+
+    const dateKey = `${now.getFullYear()}${mm}${dd}`
+
+    const [counter] = await db
+      .insert(transactionCounters)
+      .values({
+        prefix,
+        date: dateKey,
+        lastNumber: 1,
+      })
+      .onConflictDoUpdate({
+        target: [transactionCounters.prefix, transactionCounters.date],
+        set: {
+          lastNumber: sql`${transactionCounters.lastNumber} + 1`,
+        },
+      })
+      .returning()
+
+    const seq = String(counter.lastNumber).padStart(4, '0')
+
+    return `${prefix}-${yy}${mm}${dd}${seq}`
   }
 
   async createTransaction(transactionData: CreateTransactionRequest): Promise<Transaction> {
     const db = createDb(localConfig.dbUrl)
 
-    const result = await db.insert(transactions).values({
-      code: transactionData.code,
+    const code = await this.generateTransactionCode('TRX')
+    const doc = {
+      code,
       transactionDate: transactionData.transactionDate,
       createdBy: transactionData.createdBy,
       userId: transactionData.userId,
@@ -71,7 +109,9 @@ export class TransactionsRepository {
       ppn: transactionData.ppn,
       bill: transactionData.bill,
       payment: transactionData.payment,
-    }).returning();
+    }
+
+    const result = await db.insert(transactions).values(doc).returning();
     return convertToTransaction(result[0]);
   }
 
