@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, isNull, and } from 'drizzle-orm';
 import { createDb } from '../libs/db';
 import localConfig from '../libs/config';
 import { generateCode } from '../utils/codeGenerator';
@@ -31,10 +31,14 @@ export class ProductsCategoryRepository {
       db
         .select()
         .from(productsCategory)
+        .where(isNull(productsCategory.deletedAt))
         .orderBy(productsCategory.createdAt)
         .limit(limit)
         .offset(offset),
-      db.$count(productsCategory)
+      db.$count(
+        productsCategory,
+        isNull(productsCategory.deletedAt)
+      )
     ]);
     return {
       data: dataResult.map(convertToProductsCategory),
@@ -48,7 +52,12 @@ export class ProductsCategoryRepository {
     const result = await db
       .select()
       .from(productsCategory)
-      .where(eq(productsCategory.id, parseInt(id)));
+      .where(
+        and(
+          eq(productsCategory.id, parseInt(id)),
+          isNull(productsCategory.deletedAt)
+        )
+      );
     return result[0] ? convertToProductsCategory(result[0]) : null;
   }
 
@@ -58,7 +67,12 @@ export class ProductsCategoryRepository {
     const result = await db
       .select()
       .from(productsCategory)
-      .where(eq(productsCategory.name, name));
+      .where(
+        and(
+          eq(productsCategory.name, name),
+          isNull(productsCategory.deletedAt)
+        )
+      );
     return result[0] ? convertToProductsCategory(result[0]) : null;
   }
 
