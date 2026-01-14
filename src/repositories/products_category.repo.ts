@@ -84,9 +84,9 @@ export class ProductsCategoryRepository {
     if (updates.name) updateData.name = updates.name;
     if (updates.status) updateData.status = updates.status === 'true' ? true : false;
 
-    return await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       // update category
-      const category = await db
+      const category = await tx
         .update(productsCategory)
         .set(updateData)
         .where(eq(productsCategory.id, parseInt(id)))
@@ -94,7 +94,7 @@ export class ProductsCategoryRepository {
 
       if (updates.status === 'false') {
         // inactive product
-        await db
+        await tx
           .update(products)
           .set({ active: false })
           .where(eq(products.categoryId, parseInt(id)))
@@ -102,6 +102,8 @@ export class ProductsCategoryRepository {
 
       return category[0] ? convertToProductsCategory(category[0]) : null;
     })
+
+    return result
   }
 
   async deleteProductsCategory(id: string): Promise<ProductsCategory | null> {
@@ -109,14 +111,14 @@ export class ProductsCategoryRepository {
 
     return await db.transaction(async (tx) => {
       // delete category
-      const category = await db
+      const category = await tx
         .update(productsCategory)
         .set({ deletedAt: new Date() })
         .where(eq(productsCategory.id, parseInt(id)))
         .returning();
 
       // inactive product
-      await db
+      await tx
         .update(products)
         .set({ active: false })
         .where(eq(products.categoryId, parseInt(id)))

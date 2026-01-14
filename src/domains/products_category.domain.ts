@@ -64,7 +64,7 @@ export class ProductsCategoryDomain {
 
     // check category name
     const checkName = await this.repo.getProductsCategoryByName(updates.name.toLowerCase())
-    if (checkName) {
+    if (checkName && checkName.id !== id) {
       return wrapperData(null, BadRequest('Nama kategori sudah digunakan'))
     }
 
