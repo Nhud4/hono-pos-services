@@ -82,3 +82,14 @@ export interface OrderData {
   bill: number;
   items: OrderProduct[]
 }
+
+export interface TrxItem {
+  productId: number;
+  qty: number;
+};
+
+export interface ListTransactionRequest {
+  page: string;
+  size: string;
+  search?: string;
+}

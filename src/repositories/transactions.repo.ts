@@ -12,7 +12,7 @@ import {
   UpdateTransactionRequest,
   CreateOrderRequest,
   GetOrderRequest,
-  OrderData
+  OrderData,
 } from '../types/transactions.type';
 
 // Helper function to convert Drizzle result to our Transaction type
@@ -36,7 +36,6 @@ function convertToTransaction(drizzleTransaction: any): Transaction {
     bill: drizzleTransaction.bill,
     payment: drizzleTransaction.payment,
     created_at: drizzleTransaction.createdAt?.toISOString(),
-    updated_at: drizzleTransaction.updatedAt?.toISOString(),
   };
 }
 
@@ -86,104 +85,150 @@ export class TransactionsRepository {
   }
 
   async createOrder(user: GetOrderRequest, doc: CreateOrderRequest): Promise<{ code: string }> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
+    const userId = Number(user.id);
 
-    // generate code
-    const code = await this.generateTransactionCode('TRX')
-
-    // transaction table
     const result = await db.transaction(async (tx) => {
-      const checkOrder = await tx
+      // cari data order
+      const [existingOrder] = await tx
         .select()
         .from(transactions)
         .where(
           and(
-            eq(transactions.userId, parseInt(user.id)),
+            eq(transactions.userId, userId),
             eq(transactions.transactionType, 'cart'),
             isNull(transactions.deletedAt),
           )
-        );
+        )
+        .limit(1);
 
-      const orderResult = checkOrder[0]
+      if (existingOrder) {
+        // kembalikan stock lama
+        const res = await tx.execute(sql`
+          UPDATE products
+          SET stock = stock + tp.qty
+          FROM transaction_products tp
+          WHERE products.id = tp."productId" 
+            AND tp."transactionId" = ${existingOrder.id}
+        `);
+        console.log("UPDATE STOCK ROW COUNT:", res);
 
-      if (orderResult) {
-        // delete data on table transaction product
+        // hapus item lama
         await tx
           .delete(transactionProducts)
-          .where(eq(transactionProducts.transactionId, orderResult.id));
+          .where(eq(transactionProducts.transactionId, existingOrder.id));
 
-        // update transaction
-        const data = await tx
+        // update data transaksi
+        await tx
           .update(transactions)
           .set({
             ...doc,
-            userId: parseInt(user.id),
-            createdBy: user.name
+            userId,
+            createdBy: user.name,
           })
-          .where(eq(transactions.id, orderResult.id))
-          .returning()
+          .where(eq(transactions.id, existingOrder.id));
 
-        // insert transaction product
-        const product = doc.items.map((val) => ({
-          transactionId: data[0].id,
-          productId: val.productId,
-          qty: val.qty,
-          subtotal: val.subtotal,
-          discount: val.discount,
-          notes: val.notes || null
-        }))
+        // / insert item baru
+        const newItems = doc.items.map((i) => ({
+          transactionId: existingOrder.id,
+          productId: i.productId,
+          qty: i.qty,
+          subtotal: i.subtotal,
+          discount: i.discount,
+          notes: i.notes ?? null,
+        }));
 
-        await tx.insert(transactionProducts).values(product)
+        await tx.insert(transactionProducts).values(newItems);
 
-        return data[0].code
+        // update stock product
+        await tx.execute(sql`
+          UPDATE products
+          SET stock = stock - tp.qty
+          FROM transaction_products tp
+          WHERE products.id = tp."productId"
+            AND tp."transactionId" = ${existingOrder.id}
+        `);
+
+        return { code: existingOrder.code || '' };
       }
 
-      // insert transaction table
-      const data = await tx
+      // generate code
+      const code = await this.generateTransactionCode('TRX');
+
+      // insert transaksi baru
+      const [newOrder] = await tx
         .insert(transactions)
         .values({
           ...doc,
           code,
-          userId: parseInt(user.id),
-          createdBy: user.name
+          userId,
+          createdBy: user.name,
         })
-        .returning()
+        .returning();
 
-      // insert transaction product
-      const product = doc.items.map((val) => ({
-        transactionId: data[0].id,
-        productId: val.productId,
-        qty: val.qty,
-        subtotal: val.subtotal,
-        discount: val.discount,
-        notes: val.notes || null
-      }))
+      // insert item
+      const items = doc.items.map((i) => ({
+        transactionId: newOrder.id,
+        productId: i.productId,
+        qty: i.qty,
+        subtotal: i.subtotal,
+        discount: i.discount,
+        notes: i.notes ?? null,
+      }));
+      await tx.insert(transactionProducts).values(items);
 
-      await tx.insert(transactionProducts).values(product)
+      // update stock
+      await tx.execute(sql`
+        UPDATE products
+        SET stock = stock - tp.qty
+        FROM transaction_products tp
+        WHERE products.id = tp."productId"
+          AND tp."transactionId" = ${newOrder.id}
+          AND products.stock >= tp.qty
+      `);
 
-      return data[0].code
-    })
+      return { code: newOrder.code || '' };
+    });
 
-    return { code: result || '' }
+    return result
   }
 
-  async getAllTransactions(limit: number, offset: number): Promise<Transaction[]> {
+
+  async getAllTransactions(limit: number, offset: number): Promise<{ data: Transaction[], total: number }> {
     const db = createDb(localConfig.dbUrl)
 
-    const result = await db
-      .select()
-      .from(transactions)
-      .where(isNull(transactions.deletedAt))
-      .orderBy(transactions.createdAt)
-      .limit(limit)
-      .offset(offset);
-    return result.map(convertToTransaction);
+    const [result, total] = await Promise.all([
+      db
+        .select()
+        .from(transactions)
+        .where(
+          and(
+            isNull(transactions.deletedAt),
+            eq(transactions.transactionType, 'transaction'),
+          )
+        )
+        .orderBy(transactions.createdAt)
+        .limit(limit)
+        .offset(offset),
+      db.$count(
+        transactions,
+        and(
+          isNull(transactions.deletedAt),
+          eq(transactions.transactionType, 'transaction'),
+        )
+      )
+    ])
+
+    return {
+      data: result.map(convertToTransaction),
+      total
+    }
   }
 
   async getTransactionById(id: string): Promise<Transaction | null> {
     const db = createDb(localConfig.dbUrl)
 
-    const result = await db
+    const [result] = await db
       .select()
       .from(transactions)
       .where(
@@ -191,8 +236,9 @@ export class TransactionsRepository {
           eq(transactions.id, parseInt(id)),
           isNull(transactions.deletedAt)
         )
-      );
-    return result[0] ? convertToTransaction(result[0]) : null;
+      )
+      .limit(1);
+    return result ? convertToTransaction(result) : null;
   }
 
   async generateTransactionCode(prefix: string): Promise<string> {
@@ -225,67 +271,62 @@ export class TransactionsRepository {
     return `${prefix}-${yy}${mm}${dd}${seq}`
   }
 
-  // async createTransaction(transactionData: CreateTransactionRequest): Promise<Transaction> {
-  //   const db = createDb(localConfig.dbUrl)
+  async createTransaction(user: GetOrderRequest, payload: CreateTransactionRequest): Promise<{ code: string }> {
+    const db = createDb(localConfig.dbUrl)
 
-  //   const code = await this.generateTransactionCode('TRX')
-  //   const doc = {
-  //     code,
-  //     transactionDate: transactionData.transactionDate,
-  //     createdBy: transactionData.createdBy,
-  //     userId: transactionData.userId,
-  //     transactionType: transactionData.transactionType,
-  //     customerName: transactionData.customerName,
-  //     deliveryType: transactionData.deliveryType,
-  //     tableNumber: transactionData.tableNumber,
-  //     paymentType: transactionData.paymentType,
-  //     paymentMethod: transactionData.paymentMethod,
-  //     paymentStatus: transactionData.paymentStatus,
-  //     subtotal: transactionData.subtotal,
-  //     totalDiscount: transactionData.totalDiscount,
-  //     ppn: transactionData.ppn,
-  //     bill: transactionData.bill,
-  //     payment: transactionData.payment,
-  //   }
+    const doc = {
+      createdBy: payload.createdBy,
+      transactionType: payload.transactionType,
+      customerName: payload.customerName,
+      tableNumber: payload.tableNumber.toString(),
+      paymentType: payload.paymentType,
+      paymentMethod: payload.paymentMethod,
+      paymentStatus: payload.paymentStatus,
+      payment: payload.payment,
+      updatedAt: new Date()
+    }
 
-  //   const result = await db.insert(transactions).values(doc).returning();
-  //   return convertToTransaction(result[0]);
-  // }
+    const result = await db
+      .update(transactions)
+      .set(doc)
+      .where(eq(transactions.userId, Number(user.id)))
+      .returning();
 
-  // async updateTransaction(id: string, updates: UpdateTransactionRequest): Promise<Transaction | null> {
-  //   const db = createDb(localConfig.dbUrl)
-  //   const updateData: any = { updatedAt: new Date() };
+    return { code: result[0].code || '' };
+  }
 
-  //   if (updates.code !== undefined) updateData.code = updates.code;
-  //   if (updates.transactionDate !== undefined) updateData.transactionDate = updates.transactionDate;
-  //   if (updates.createdBy !== undefined) updateData.createdBy = updates.createdBy;
-  //   if (updates.userId !== undefined) updateData.userId = updates.userId;
-  //   if (updates.transactionType !== undefined) updateData.transactionType = updates.transactionType;
-  //   if (updates.customerName !== undefined) updateData.customerName = updates.customerName;
-  //   if (updates.deliveryType !== undefined) updateData.deliveryType = updates.deliveryType;
-  //   if (updates.tableNumber !== undefined) updateData.tableNumber = updates.tableNumber;
-  //   if (updates.paymentType !== undefined) updateData.paymentType = updates.paymentType;
-  //   if (updates.paymentMethod !== undefined) updateData.paymentMethod = updates.paymentMethod;
-  //   if (updates.paymentStatus !== undefined) updateData.paymentStatus = updates.paymentStatus;
-  //   if (updates.subtotal !== undefined) updateData.subtotal = updates.subtotal;
-  //   if (updates.totalDiscount !== undefined) updateData.totalDiscount = updates.totalDiscount;
-  //   if (updates.ppn !== undefined) updateData.ppn = updates.ppn;
-  //   if (updates.bill !== undefined) updateData.bill = updates.bill;
-  //   if (updates.payment !== undefined) updateData.payment = updates.payment;
+  async updateTransaction(id: string, updates: UpdateTransactionRequest): Promise<Transaction | null> {
+    const db = createDb(localConfig.dbUrl)
+    const doc = {
+      createdBy: updates.createdBy,
+      transactionType: updates.transactionType,
+      customerName: updates.customerName,
+      tableNumber: updates.tableNumber.toString(),
+      paymentType: updates.paymentType,
+      paymentMethod: updates.paymentMethod,
+      paymentStatus: updates.paymentStatus,
+      payment: updates.payment,
+      updatedAt: new Date()
+    }
 
-  //   const result = await db
-  //     .update(transactions)
-  //     .set(updateData)
-  //     .where(eq(transactions.id, parseInt(id)))
-  //     .returning();
+    const [result] = await db
+      .update(transactions)
+      .set(doc)
+      .where(eq(transactions.id, parseInt(id)))
+      .returning();
 
-  //   return result[0] ? convertToTransaction(result[0]) : null;
-  // }
+    return result ? convertToTransaction(result) : null;
+  }
 
-  // async deleteTransaction(id: string): Promise<boolean> {
-  //   const db = createDb(localConfig.dbUrl)
+  async deleteTransaction(id: string): Promise<Transaction | null> {
+    const db = createDb(localConfig.dbUrl)
 
-  //   const result = await db.delete(transactions).where(eq(transactions.id, parseInt(id)));
-  //   return true;
-  // }
+    const [result] = await db
+      .update(transactions)
+      .set({ deletedAt: new Date() })
+      .where(eq(transactions.id, Number(id)))
+      .returning()
+
+    return result ? convertToTransaction(result) : null;
+  }
 }

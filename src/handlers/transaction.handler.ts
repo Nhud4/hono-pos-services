@@ -37,9 +37,7 @@ export const createOrder = async (c: Context) => {
     const user = c.get('user') as GetOrderRequest
 
     const { data, error } = await domain.createOrder(user, body)
-    if (error) {
-      return c.json(error, error.code);
-    }
+    if (error) return c.json(error, error.code);
 
     return c.json(
       successResponse(data, 'Order created successfully', 201),
@@ -53,11 +51,13 @@ export const createOrder = async (c: Context) => {
 
 export const listTransaction = async (c: Context) => {
   try {
-    const body = c.get('payload') as CreateTransactionSchema
+    const params = c.get('payload') as ListTransactionSchema
+
+    const { data, meta } = await domain.listTransaction(params)
 
     return c.json(
-      successResponse(body, 'Order created successfully', 201),
-      201
+      successResponse(data, 'Order retrieved successfully', 200, meta),
+      200
     );
   } catch (error) {
     console.log(error)
@@ -67,10 +67,13 @@ export const listTransaction = async (c: Context) => {
 
 export const detailTransaction = async (c: Context) => {
   try {
-    const body = c.get('payload') as CreateTransactionSchema
+    const { id } = c.get('payload') as TransactionIdSchema
+
+    const { data, error } = await domain.detailTransaction(id)
+    if (error) return c.json(error, error.code);
 
     return c.json(
-      successResponse(body, 'Order created successfully', 201),
+      successResponse(data, 'Order retrieved successfully', 201),
       201
     );
   } catch (error) {
@@ -82,9 +85,13 @@ export const detailTransaction = async (c: Context) => {
 export const createTransaction = async (c: Context) => {
   try {
     const body = c.get('payload') as CreateTransactionSchema
+    const user = c.get('user') as GetOrderRequest
+
+    const { data, error } = await domain.createTransaction(user, body)
+    if (error) return c.json(error, error.code);
 
     return c.json(
-      successResponse(body, 'Order created successfully', 201),
+      successResponse(data, 'Order created successfully', 201),
       201
     );
   } catch (error) {
@@ -96,9 +103,13 @@ export const createTransaction = async (c: Context) => {
 export const updateTransaction = async (c: Context) => {
   try {
     const body = c.get('payload') as UpdateTransactionSchema
+    const id = c.req.param('id')
+
+    const { data, error } = await domain.updateTransaction(id, body)
+    if (error) return c.json(error, error.code);
 
     return c.json(
-      successResponse(body, 'Order created successfully', 201),
+      successResponse(data, 'Order update successfully', 201),
       201
     );
   } catch (error) {
@@ -109,10 +120,13 @@ export const updateTransaction = async (c: Context) => {
 
 export const deleteTransaction = async (c: Context) => {
   try {
-    const body = c.get('payload') as TransactionIdSchema
+    const { id } = c.get('payload') as TransactionIdSchema
+
+    const { data, error } = await domain.deleteTransaction(id)
+    if (error) return c.json(error, error.code);
 
     return c.json(
-      successResponse(body, 'Order created successfully', 201),
+      successResponse(data, 'Order delete successfully', 201),
       201
     );
   } catch (error) {

@@ -9,7 +9,8 @@ import {
   OrderProduct,
   Transaction,
   UpdateTransactionRequest,
-  GetOrderRequest
+  GetOrderRequest,
+  ListTransactionRequest
 } from '../types/transactions.type';
 
 export class TransactionDomain {
@@ -42,6 +43,63 @@ export class TransactionDomain {
     }
 
     const result = await this.repo.createOrder(user, payload)
+    return wrapperData(result, null)
+  }
+
+  async listTransaction(params: ListTransactionRequest): Promise<{ data: Transaction[], meta: PaginationMeta }> {
+    const limit = parseInt(params.size)
+    const offset = (parseInt(params.page) - 1) * limit
+
+    const result = await this.repo.getAllTransactions(limit, offset)
+
+    const meta: PaginationMeta = {
+      total: result.total,
+      limit,
+      totalPages: result.total > 0 ? Math.ceil(result.total / limit) : 1,
+      currentPage: Math.floor(offset / limit) + 1
+    };
+
+    return { data: result.data, meta };
+  }
+
+  async detailTransaction(id: string): Promise<WrapperData> {
+    const result = await this.repo.getTransactionById(id)
+    if (!result) {
+      return wrapperData(null, DataNotFound())
+    }
+    return wrapperData(result, null)
+  }
+
+  async createTransaction(user: GetOrderRequest, payload: CreateTransactionRequest): Promise<WrapperData> {
+    // check user
+    const checkUser = await this.user.getUserById(user.id)
+    if (!checkUser) {
+      return wrapperData(null, DataNotFound('User not found'))
+    }
+
+    const result = await this.repo.createTransaction(user, payload)
+    return wrapperData(result, null)
+  }
+
+  async updateTransaction(id: string, payload: UpdateTransactionRequest): Promise<WrapperData> {
+    const checkId = await this.repo.getTransactionById(id)
+    if (!checkId) {
+      return wrapperData(null, DataNotFound())
+    }
+
+    const result = await this.repo.updateTransaction(id, payload)
+
+    return wrapperData(result, null)
+  }
+
+  async deleteTransaction(id: string): Promise<WrapperData> {
+    const checkId = await this.repo.getTransactionById(id)
+    if (!checkId) {
+      return wrapperData(null, DataNotFound())
+    }
+
+    const result = await this.repo.deleteTransaction(id)
+
     return wrapperData(result, null)
   }
 }
