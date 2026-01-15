@@ -1,37 +1,44 @@
 import { z } from 'zod';
 
-export const createTransactionSchema = z.object({
+// order validator
+export const createOrderSchema = z.object({
   transactionDate: z.string(),
-  createdBy: z.string().optional(),
-  transactionType: z.enum(['cart', 'transaction']),
-  customerName: z.string(),
+  transactionType: z.enum(['cart']),
   deliveryType: z.enum(['in', 'out']),
-  tableNumber: z.number().positive('Nomor meja harus lebih dari 0'),
-  paymentType: z.enum(['later', 'now']),
-  paymentMethod: z.string(),
-  paymentStatus: z.enum(['pending', 'success', 'reject']),
   subtotal: z.number(),
   totalDiscount: z.number(),
   ppn: z.number(),
   bill: z.number(),
-  payment: z.number(),
+  items: z.array(z.object({
+    productId: z.number().positive('ID produk tidak valid'),
+    qty: z.number().positive('QTY harus lebih dari 0'),
+    discount: z.number(),
+    subtotal: z.number().positive('Subtotal harus lebih dari 0'),
+    notes: z.string().optional()
+  }))
+})
+
+
+export const createTransactionSchema = z.object({
+  createdBy: z.string().optional(),
+  transactionType: z.enum(['transaction']),
+  customerName: z.string(),
+  tableNumber: z.number().positive('Nomor meja harus lebih dari 0'),
+  paymentType: z.enum(['later', 'now']),
+  paymentMethod: z.string().optional(),
+  paymentStatus: z.enum(['pending', 'success', 'reject', '']),
+  payment: z.number().optional(),
 });
 
 export const updateTransactionSchema = z.object({
-  transactionDate: z.string(),
   createdBy: z.string().optional(),
-  transactionType: z.enum(['cart', 'transaction']),
+  transactionType: z.enum(['transaction']),
   customerName: z.string(),
-  deliveryType: z.enum(['in', 'out']),
   tableNumber: z.number().positive('Nomor meja harus lebih dari 0'),
   paymentType: z.enum(['later', 'now']),
   paymentMethod: z.string(),
-  paymentStatus: z.enum(['pending', 'success', 'reject']),
-  subtotal: z.number(),
-  totalDiscount: z.number(),
-  ppn: z.number(),
-  bill: z.number(),
-  payment: z.number(),
+  paymentStatus: z.enum(['pending', 'success', 'reject', '']),
+  payment: z.number()
 });
 
 export const transactionIdSchema = z.object({
@@ -54,3 +61,5 @@ export type CreateTransactionSchema = z.infer<typeof createTransactionSchema>
 export type UpdateTransactionSchema = z.infer<typeof updateTransactionSchema>
 export type TransactionIdSchema = z.infer<typeof transactionIdSchema>
 export type ListTransactionSchema = z.infer<typeof listTransactionSchema>
+
+export type CreateOrderSchema = z.infer<typeof createOrderSchema>

@@ -89,6 +89,7 @@ export class UserDomain {
       id: user.id,
       role: user.role,
       username: user.username,
+      name: user.name
     };
 
     const token = await sign(payload, localConfig.jwt, 'HS256');
