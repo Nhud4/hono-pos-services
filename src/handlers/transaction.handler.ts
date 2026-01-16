@@ -73,8 +73,8 @@ export const detailTransaction = async (c: Context) => {
     if (error) return c.json(error, error.code);
 
     return c.json(
-      successResponse(data, 'Order retrieved successfully', 201),
-      201
+      successResponse(data, 'Order retrieved successfully', 200),
+      200
     );
   } catch (error) {
     console.log(error)

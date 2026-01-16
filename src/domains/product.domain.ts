@@ -2,7 +2,8 @@ import { ProductRepository } from '../repositories/product.repo';
 import { ProductsCategoryRepository } from '../repositories/products_category.repo';
 import { wrapperData } from '../utils/wrapper';
 import { BadRequest, DataNotFound } from '../utils/errors';
-import { WrapperData, PaginationMeta } from '../types/wrapper.type';
+import { WrapperData, PaginationMeta, WrapperMetaData } from '../types/wrapper.type';
+import { getDiscountPrice } from '../utils/codeGenerator';
 import {
   Product,
   CreateProductRequest,
@@ -19,20 +20,40 @@ export class ProductDomain {
     this.category = new ProductsCategoryRepository()
   }
 
-  async getAllProducts(params: ListProductRequest): Promise<{ data: Product[], meta: PaginationMeta }> {
+  async getAllProducts(params: ListProductRequest): Promise<WrapperMetaData> {
     const limit = parseInt(params.size)
     const offset = (parseInt(params.page) - 1) * limit
 
-    const result = await this.repo.getAllProducts(limit, offset);
+    const { data, total } = await this.repo.getAllProducts(limit, offset);
 
     const meta: PaginationMeta = {
-      total: result.total,
+      total: total,
       limit,
-      totalPages: result.total > 0 ? Math.ceil(result.total / limit) : 1,
+      totalPages: total > 0 ? Math.ceil(total / limit) : 1,
       currentPage: Math.floor(offset / limit) + 1
     };
 
-    return { data: result.data, meta };
+    const newData = data.map((val) => ({
+      id: val.products.id,
+      code: val.products.code,
+      name: val.products.name,
+      price: val.products.normalPrice,
+      discount: getDiscountPrice(
+        val.products.discountType,
+        val.products.normalPrice || 0,
+        val.products.discount || 0
+      ),
+      stock: val.products.stock,
+      active: val.products.active,
+      available: val.products.available,
+      img: val.products.img,
+      category: {
+        id: val.products_category.id,
+        name: val.products_category.name
+      }
+    }))
+
+    return { data: newData, meta };
   }
 
   async getProductById(id: string): Promise<WrapperData> {
@@ -62,6 +83,7 @@ export class ProductDomain {
   }
 
   async updateProduct(id: string, updates: UpdateProductRequest): Promise<WrapperData> {
+    this.validateUpdateProduct(updates);
     // check data id
     const checkId = await this.repo.getProductById(id)
     if (!checkId) {
@@ -69,9 +91,9 @@ export class ProductDomain {
     }
 
     // check name
-    const checkName = await this.repo.getProductByName(updates.name)
+    const checkName = await this.repo.getProductByName(updates.name.toLowerCase())
     if (checkName && checkName.id !== id) {
-      return wrapperData(null, BadRequest())
+      return wrapperData(null, BadRequest('Nama produk sudah digunakan'))
     }
 
     // check category
@@ -93,5 +115,14 @@ export class ProductDomain {
 
     const result = await this.repo.deleteProduct(id);
     return wrapperData({ code: result?.code }, null)
+  }
+
+  private validateUpdateProduct(updates: UpdateProductRequest): void {
+    if (!updates.name || updates.name.trim().length === 0) {
+      throw new Error('Product name is required');
+    }
+    if (!updates.categoryId || updates.categoryId.trim().length === 0) {
+      throw new Error('Category is required');
+    }
   }
 }

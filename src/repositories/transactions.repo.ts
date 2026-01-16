@@ -4,7 +4,9 @@ import localConfig from '../libs/config';
 import {
   transactions,
   transactionCounters,
-  transactionProducts
+  transactionProducts,
+  users,
+  products
 } from '../../drizzle/schema';
 import {
   Transaction,
@@ -15,35 +17,11 @@ import {
   OrderData,
 } from '../types/transactions.type';
 
-// Helper function to convert Drizzle result to our Transaction type
-function convertToTransaction(drizzleTransaction: any): Transaction {
-  return {
-    id: drizzleTransaction.id.toString(),
-    code: drizzleTransaction.code,
-    transactionDate: drizzleTransaction.transactionDate,
-    createdBy: drizzleTransaction.createdBy,
-    userId: drizzleTransaction.userId,
-    transactionType: drizzleTransaction.transactionType,
-    customerName: drizzleTransaction.customerName || undefined,
-    deliveryType: drizzleTransaction.deliveryType || undefined,
-    tableNumber: drizzleTransaction.tableNumber || undefined,
-    paymentType: drizzleTransaction.paymentType || undefined,
-    paymentMethod: drizzleTransaction.paymentMethod || undefined,
-    paymentStatus: drizzleTransaction.paymentStatus || undefined,
-    subtotal: drizzleTransaction.subtotal,
-    totalDiscount: drizzleTransaction.totalDiscount,
-    ppn: drizzleTransaction.ppn,
-    bill: drizzleTransaction.bill,
-    payment: drizzleTransaction.payment,
-    created_at: drizzleTransaction.createdAt?.toISOString(),
-  };
-}
-
 export class TransactionsRepository {
-  async getOrderByUser(id: string): Promise<OrderData | null> {
+  async getOrderByUser(id: string) {
     const db = createDb(localConfig.dbUrl)
 
-    const result = await db
+    const [result] = await db
       .select()
       .from(transactions)
       .where(
@@ -54,34 +32,12 @@ export class TransactionsRepository {
         )
       )
 
+    if (!result) return null;
+
     const product = await db.select().from(transactionProducts)
-      .where(eq(transactionProducts.transactionId, result[0].id))
+      .where(eq(transactionProducts.transactionId, result.id))
 
-    const data = result[0]
-    if (data) {
-      return {
-        id: data.id,
-        code: data.code,
-        transactionDate: data.transactionDate || '',
-        createdBy: data.createdBy || '',
-        transactionType: data.transactionType || '',
-        deliveryType: data.deliveryType || '',
-        paymentType: data.paymentType || '',
-        subtotal: data.subtotal || 0,
-        totalDiscount: data.totalDiscount || 0,
-        ppn: data.ppn || 0,
-        bill: data.bill || 0,
-        items: product.map((val) => ({
-          productId: val.productId || 0,
-          qty: val.qty || 0,
-          discount: val.discount || 0,
-          subtotal: val.subtotal || 0,
-          notes: val.notes || ''
-        })) || []
-      }
-    }
-
-    return null
+    return { transaction: result, product }
   }
 
   async createOrder(user: GetOrderRequest, doc: CreateOrderRequest): Promise<{ code: string }> {
@@ -111,7 +67,6 @@ export class TransactionsRepository {
           WHERE products.id = tp."productId" 
             AND tp."transactionId" = ${existingOrder.id}
         `);
-        console.log("UPDATE STOCK ROW COUNT:", res);
 
         // hapus item lama
         await tx
@@ -194,12 +149,18 @@ export class TransactionsRepository {
   }
 
 
-  async getAllTransactions(limit: number, offset: number): Promise<{ data: Transaction[], total: number }> {
+  async getAllTransactions(limit: number, offset: number) {
     const db = createDb(localConfig.dbUrl)
 
     const [result, total] = await Promise.all([
-      db
-        .select()
+      db.select({
+        id: transactions.id,
+        code: transactions.code,
+        transactionDate: transactions.transactionDate,
+        customerName: transactions.customerName,
+        paymentMethod: transactions.paymentMethod,
+        bill: transactions.bill
+      })
         .from(transactions)
         .where(
           and(
@@ -219,29 +180,31 @@ export class TransactionsRepository {
       )
     ])
 
-    return {
-      data: result.map(convertToTransaction),
-      total
-    }
+    return { data: result, total }
   }
 
-  async getTransactionById(id: string): Promise<Transaction | null> {
+  async getTransactionById(id: string) {
     const db = createDb(localConfig.dbUrl)
 
-    const [result] = await db
-      .select()
-      .from(transactions)
-      .where(
-        and(
-          eq(transactions.id, parseInt(id)),
-          isNull(transactions.deletedAt)
-        )
-      )
-      .limit(1);
-    return result ? convertToTransaction(result) : null;
+    const [result] = await db.select().from(transactions)
+      .where(and(
+        eq(transactions.id, parseInt(id)),
+        isNull(transactions.deletedAt)
+      ))
+      .limit(1)
+      .leftJoin(users, eq(transactions.userId, users.id))
+
+    if (!result) return null
+    const { transactions: trxData, users: userData } = result
+
+    const product = await db.select().from(transactionProducts)
+      .where(eq(transactionProducts.transactionId, trxData.id))
+      .innerJoin(products, eq(transactionProducts.productId, products.id))
+
+    return { transaction: trxData, userData, product };
   }
 
-  async generateTransactionCode(prefix: string): Promise<string> {
+  async generateTransactionCode(prefix: string) {
     const db = createDb(localConfig.dbUrl)
 
     const now = new Date()
@@ -271,9 +234,8 @@ export class TransactionsRepository {
     return `${prefix}-${yy}${mm}${dd}${seq}`
   }
 
-  async createTransaction(user: GetOrderRequest, payload: CreateTransactionRequest): Promise<{ code: string }> {
+  async createTransaction(user: GetOrderRequest, payload: CreateTransactionRequest) {
     const db = createDb(localConfig.dbUrl)
-
     const doc = {
       createdBy: payload.createdBy,
       transactionType: payload.transactionType,
@@ -286,16 +248,16 @@ export class TransactionsRepository {
       updatedAt: new Date()
     }
 
-    const result = await db
+    const [result] = await db
       .update(transactions)
       .set(doc)
       .where(eq(transactions.userId, Number(user.id)))
       .returning();
 
-    return { code: result[0].code || '' };
+    return result
   }
 
-  async updateTransaction(id: string, updates: UpdateTransactionRequest): Promise<Transaction | null> {
+  async updateTransaction(id: string, updates: UpdateTransactionRequest) {
     const db = createDb(localConfig.dbUrl)
     const doc = {
       createdBy: updates.createdBy,
@@ -315,10 +277,10 @@ export class TransactionsRepository {
       .where(eq(transactions.id, parseInt(id)))
       .returning();
 
-    return result ? convertToTransaction(result) : null;
+    return result;
   }
 
-  async deleteTransaction(id: string): Promise<Transaction | null> {
+  async deleteTransaction(id: string) {
     const db = createDb(localConfig.dbUrl)
 
     const [result] = await db
@@ -327,6 +289,6 @@ export class TransactionsRepository {
       .where(eq(transactions.id, Number(id)))
       .returning()
 
-    return result ? convertToTransaction(result) : null;
+    return result;
   }
 }

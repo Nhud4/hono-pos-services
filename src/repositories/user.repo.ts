@@ -1,8 +1,8 @@
+import { eq, and, isNull } from 'drizzle-orm';
+import * as bcrypt from 'bcryptjs';
 import { createDb } from '../libs/db';
 import localConfig from '../libs/config';
 import { users } from '../../drizzle/schema';
-import { eq, and } from 'drizzle-orm';
-import * as bcrypt from 'bcryptjs';
 import { User, CreateUserRequest, UpdateUserRequest } from '../types/user.type';
 import { generateCode } from '../utils/codeGenerator';
 
@@ -25,8 +25,8 @@ export class UserRepository {
     const db = createDb(localConfig.dbUrl)
 
     const [dataResult, totalResult] = await Promise.all([
-      db.select().from(users).orderBy(users.createdAt).limit(limit).offset(offset),
-      db.$count(users)
+      db.select().from(users).where(isNull(users.deletedAt)).orderBy(users.createdAt).limit(limit).offset(offset),
+      db.$count(users, isNull(users.deletedAt))
     ]);
 
     return {
@@ -38,14 +38,24 @@ export class UserRepository {
   async getUserById(id: string): Promise<User | null> {
     const db = createDb(localConfig.dbUrl)
 
-    const result = await db.select().from(users).where(eq(users.id, parseInt(id)));
+    const result = await db.select().from(users).where(
+      and(
+        eq(users.id, parseInt(id)),
+        isNull(users.deletedAt)
+      )
+    );
     return result[0] ? convertToUser(result[0]) : null;
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
     const db = createDb(localConfig.dbUrl)
 
-    const result = await db.select().from(users).where(eq(users.username, username));
+    const result = await db.select().from(users).where(
+      and(
+        eq(users.username, username),
+        isNull(users.deletedAt)
+      )
+    );
     return result[0] ? convertToUser(result[0]) : null;
   }
 
@@ -88,18 +98,25 @@ export class UserRepository {
 
   async deleteUser(id: string): Promise<boolean> {
     const db = createDb(localConfig.dbUrl)
-    const result = await db.delete(users).where(eq(users.id, parseInt(id))).returning();
+
+    const result = await db
+      .update(users)
+      .set({ deletedAt: new Date() })
+      .where(eq(users.id, parseInt(id)))
+      .returning();
     return result.length > 0;
   }
 
   async verifyPassword(username: string, password: string, role: string): Promise<User | null> {
     const db = createDb(localConfig.dbUrl)
+
     const result = await db.select()
       .from(users)
       .where(
         and(
           eq(users.username, username),
-          eq(users.role, role)
+          eq(users.role, role),
+          isNull(users.deletedAt)
         )
       );
     if (!result[0] || !result[0].password) return null;

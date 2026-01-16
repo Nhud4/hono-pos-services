@@ -1,7 +1,7 @@
 import { eq, isNull, and } from 'drizzle-orm';
-import { products } from '../../drizzle/schema';
 import { createDb } from '../libs/db';
 import localConfig from '../libs/config';
+import { products, productsCategory } from '../../drizzle/schema';
 import { Product, CreateProductRequest, UpdateProductRequest } from '../types/product.type';
 import { generateCode } from '../utils/codeGenerator';
 
@@ -27,26 +27,19 @@ function convertToProduct(drizzleProduct: any): Product {
 }
 
 export class ProductRepository {
-  async getAllProducts(limit: number = 50, offset: number = 0): Promise<{
-    data: Product[],
-    total: number
-  }> {
+  async getAllProducts(limit: number = 50, offset: number = 0) {
     const db = createDb(localConfig.dbUrl)
 
     const [dataResult, totalResult] = await Promise.all([
-      db
-        .select()
-        .from(products)
+      db.select().from(products)
         .where(isNull(products.deletedAt))
         .orderBy(products.createdAt)
         .limit(limit)
-        .offset(offset),
+        .offset(offset)
+        .innerJoin(productsCategory, eq(products.categoryId, productsCategory.id)),
       db.$count(products, isNull(products.deletedAt))
     ]);
-    return {
-      data: dataResult.map(convertToProduct),
-      total: totalResult
-    };
+    return { data: dataResult, total: totalResult };
   }
 
   async getProductById(id: string): Promise<Product | null> {
@@ -101,7 +94,7 @@ export class ProductRepository {
 
   async updateProduct(id: string, updates: UpdateProductRequest): Promise<Product | null> {
     const db = createDb(localConfig.dbUrl)
-    const updateData: any = {
+    const updateData = {
       ...updates,
       name: updates.name.toLowerCase(),
       categoryId: parseInt(updates.categoryId),

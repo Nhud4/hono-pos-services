@@ -70,6 +70,13 @@ export class UserDomain {
 
   async updateUser(id: string, updates: UpdateUserRequest): Promise<User | null> {
     this.validateUpdateUser(updates);
+    // check username uniqueness if updating username
+    if (updates.username) {
+      const existing = await this.repo.getUserByUsername(updates.username);
+      if (existing && existing.id !== id) {
+        throw new Error('Username already taken');
+      }
+    }
     return this.repo.updateUser(id, updates);
   }
 
