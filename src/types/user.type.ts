@@ -37,6 +37,7 @@ export interface LoginRequest {
 export interface LoginResponse {
   user: User;
   token: string;
+  expiredAt: string;
 }
 
 export interface RegisterRequest {

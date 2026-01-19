@@ -92,11 +92,15 @@ export class UserDomain {
     );
     if (!user) return null;
 
+    const now = Math.floor(Date.now() / 1000)
+    const expSeconds = 60 * 60 * 24 // 1 hari
+
     const payload = {
       id: user.id,
       role: user.role,
       username: user.username,
-      name: user.name
+      name: user.name,
+      exp: now + expSeconds,
     };
 
     const token = await sign(payload, localConfig.jwt, 'HS256');
@@ -104,6 +108,7 @@ export class UserDomain {
     return {
       user,
       token,
+      expiredAt: new Date((now + expSeconds) * 1000).toISOString(),
     };
   }
 

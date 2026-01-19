@@ -92,7 +92,7 @@ export const loginHandler = async (c: Context) => {
 
     const result = await domain.login(body);
     if (!result) {
-      return c.json(errorResponse('Invalid username or password', 401), 401);
+      return c.json(errorResponse('Invalid username or password', 422), 422);
     }
 
     return c.json(successResponse(result, 'Login successful'));
