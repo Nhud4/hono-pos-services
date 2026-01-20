@@ -22,7 +22,7 @@ export class ProductDomain {
 
   async getAllProducts(params: ListProductRequest): Promise<WrapperMetaData> {
     const limit = parseInt(params.size)
-    const offset = (parseInt(params.page) - 1) * limit
+    const offset = limit > 0 ? (parseInt(params.page) - 1) * limit : 0
 
     const { data, total } = await this.repo.getAllProducts(limit, offset);
 
@@ -30,7 +30,7 @@ export class ProductDomain {
       total: total,
       limit,
       totalPages: total > 0 ? Math.ceil(total / limit) : 1,
-      currentPage: Math.floor(offset / limit) + 1
+      currentPage: limit > 0 ? Math.floor(offset / limit) + 1 : 1
     };
 
     const newData = data.map((val) => ({

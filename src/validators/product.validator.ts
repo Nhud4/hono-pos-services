@@ -65,8 +65,7 @@ export const listProductsSchema = z.object({
     .min(1, 'Page harus lebih dar 1'),
   size: z
     .string()
-    .nonempty('Size tidak boleh kosong')
-    .min(1, 'Page harus lebih dar 1'),
+    .nonempty('Size tidak boleh kosong'),
   search: z.string().optional()
 })
 

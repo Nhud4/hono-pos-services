@@ -27,8 +27,19 @@ function convertToProduct(drizzleProduct: any): Product {
 }
 
 export class ProductRepository {
-  async getAllProducts(limit: number = 50, offset: number = 0) {
+  async getAllProducts(limit: number, offset: number) {
     const db = createDb(localConfig.dbUrl)
+
+    if (limit < 1) {
+      const [dataResult, totalResult] = await Promise.all([
+        db.select().from(products)
+          .where(isNull(products.deletedAt))
+          .orderBy(products.createdAt)
+          .innerJoin(productsCategory, eq(products.categoryId, productsCategory.id)),
+        db.$count(products, isNull(products.deletedAt))
+      ]);
+      return { data: dataResult, total: totalResult };
+    }
 
     const [dataResult, totalResult] = await Promise.all([
       db.select().from(products)
