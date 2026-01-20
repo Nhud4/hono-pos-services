@@ -4,6 +4,7 @@ import { wrapperData } from '../utils/wrapper';
 import { BadRequest, DataNotFound } from '../utils/errors';
 import { WrapperData, PaginationMeta, WrapperMetaData } from '../types/wrapper.type';
 import { getDiscountPrice } from '../utils/codeGenerator';
+import { uploadImage } from '../utils/imageUpload';
 import {
   Product,
   CreateProductRequest,
@@ -83,9 +84,21 @@ export class ProductDomain {
       return wrapperData(null, DataNotFound('Kategori tidak ditemukan'))
     }
 
+    const { img, ...rest } = productData;
     let imgUrl = ''
+    if (img) {
+      let imageBuffer: Buffer;
+      if (typeof img === 'object' && img && 'arrayBuffer' in img) {
+        imageBuffer = Buffer.from(await (img as File).arrayBuffer());
+      } else if (typeof img === 'string') {
+        imageBuffer = Buffer.from(img, 'base64');
+      } else {
+        throw new Error('Invalid image format');
+      }
+      imgUrl = await uploadImage(imageBuffer);
+    }
 
-    const result = await this.repo.createProduct({ ...productData, img: imgUrl });
+    const result = await this.repo.createProduct({ ...rest, img: imgUrl });
 
     return wrapperData(result, null)
   }

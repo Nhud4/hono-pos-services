@@ -118,7 +118,8 @@ export class ProductRepository {
       active: product.active === 'true' ? true : false,
       available: true,
       stock: parseInt(product.stock),
-      allocation: product.allocation
+      allocation: product.allocation,
+      img: product.img
     }
 
     const result = await db.insert(products).values(doc).returning();
