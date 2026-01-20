@@ -51,6 +51,7 @@ export const products = pgTable('products', {
   active: boolean('active'),
   available: boolean('available'),
   img: varchar('img'),
+  allocation: varchar('allocation'),
   createdAt: timestamp('createdAt').defaultNow(),
   updatedAt: timestamp('updatedAt').defaultNow(),
   deletedAt: timestamp('deletedAt'),

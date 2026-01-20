@@ -24,6 +24,7 @@ export const createProductSchema = z.object({
     .nonempty('Stock tidak boleh kosong')
     .min(1, 'Stock harus lebih dari 1'),
   active: z.enum(['true', 'false']),
+  allocation: z.string(),
   img: z.any()
 });
 
@@ -51,6 +52,7 @@ export const updateProductSchema = z.object({
     .nonempty('Stock tidak boleh kosong')
     .min(1, 'Stock harus lebih dari 1'),
   active: z.enum(['true', 'false']),
+  allocation: z.string(),
   img: z.any()
 });
 
@@ -66,7 +68,9 @@ export const listProductsSchema = z.object({
   size: z
     .string()
     .nonempty('Size tidak boleh kosong'),
-  search: z.string().optional()
+  search: z.string().optional(),
+  categoryId: z.string().optional(),
+  allocation: z.string().optional()
 })
 
 export type CreateProductSchema = z.infer<typeof createProductSchema>

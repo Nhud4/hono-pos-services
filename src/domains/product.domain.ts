@@ -24,7 +24,13 @@ export class ProductDomain {
     const limit = parseInt(params.size)
     const offset = limit > 0 ? (parseInt(params.page) - 1) * limit : 0
 
-    const { data, total } = await this.repo.getAllProducts(limit, offset);
+    const { data, total } = await this.repo.getAllProducts(
+      limit,
+      offset,
+      params.search,
+      params.categoryId,
+      params.allocation
+    );
 
     const meta: PaginationMeta = {
       total: total,
@@ -77,7 +83,9 @@ export class ProductDomain {
       return wrapperData(null, DataNotFound('Kategori tidak ditemukan'))
     }
 
-    const result = await this.repo.createProduct(productData);
+    let imgUrl = ''
+
+    const result = await this.repo.createProduct({ ...productData, img: imgUrl });
 
     return wrapperData(result, null)
   }

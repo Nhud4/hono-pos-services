@@ -1,4 +1,4 @@
-import { eq, isNull, and } from 'drizzle-orm';
+import { eq, isNull, and, like } from 'drizzle-orm';
 import { createDb } from '../libs/db';
 import localConfig from '../libs/config';
 import { products, productsCategory } from '../../drizzle/schema';
@@ -21,19 +21,40 @@ function convertToProduct(drizzleProduct: any): Product {
     active: drizzleProduct.active,
     available: drizzleProduct.available,
     img: drizzleProduct.img,
+    allocation: drizzleProduct.allocation,
     created_at: drizzleProduct.createdAt?.toISOString(),
     updated_at: drizzleProduct.updatedAt?.toISOString(),
   };
 }
 
 export class ProductRepository {
-  async getAllProducts(limit: number, offset: number) {
+  async getAllProducts(
+    limit: number,
+    offset: number,
+    search?: string,
+    categoryId?: string,
+    allocation?: string
+  ) {
     const db = createDb(localConfig.dbUrl)
+    const condition = [isNull(products.deletedAt)]
+
+    if (search) {
+      condition.push(like(products.name, `%${search}%`))
+    }
+
+    if (categoryId) {
+      condition.push(eq(products.categoryId, Number(categoryId)))
+    }
+
+    if (allocation) {
+      condition.push(eq(products.allocation, allocation))
+    }
+
 
     if (limit < 1) {
       const [dataResult, totalResult] = await Promise.all([
         db.select().from(products)
-          .where(isNull(products.deletedAt))
+          .where(and(...condition))
           .orderBy(products.createdAt)
           .innerJoin(productsCategory, eq(products.categoryId, productsCategory.id)),
         db.$count(products, isNull(products.deletedAt))
@@ -43,7 +64,7 @@ export class ProductRepository {
 
     const [dataResult, totalResult] = await Promise.all([
       db.select().from(products)
-        .where(isNull(products.deletedAt))
+        .where(and(...condition))
         .orderBy(products.createdAt)
         .limit(limit)
         .offset(offset)
@@ -96,7 +117,8 @@ export class ProductRepository {
       discount: product.discount ? parseInt(product.discount) : 0,
       active: product.active === 'true' ? true : false,
       available: true,
-      stock: parseInt(product.stock)
+      stock: parseInt(product.stock),
+      allocation: product.allocation
     }
 
     const result = await db.insert(products).values(doc).returning();

@@ -12,6 +12,7 @@ export interface Product {
   active: boolean;
   available: boolean;
   img: string;
+  allocation: string
   created_at?: string;
   updated_at?: string;
 }
@@ -26,6 +27,8 @@ export interface CreateProductRequest {
   discountType?: string;
   stock: string;
   active: string
+  allocation: string
+  img: string
 }
 
 export interface UpdateProductRequest {
@@ -38,10 +41,14 @@ export interface UpdateProductRequest {
   discountType?: string;
   stock: string;
   active: string
+  allocation: string
+  img: string
 }
 
 export interface ListProductRequest {
   page: string;
   size: string;
   search?: string;
+  categoryId?: string;
+  allocation?: string
 }
