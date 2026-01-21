@@ -20,7 +20,26 @@ export interface Transaction {
   updated_at?: string;
 }
 
-export interface CreateTransactionRequest {
+export interface OrderProduct {
+  productId: number;
+  qty: number;
+  subtotal: number;
+  notes?: string
+  discount: number
+}
+
+export interface CreateOrderRequest {
+  transactionDate: string;
+  transactionType: string;
+  deliveryType: string;
+  subtotal: number;
+  totalDiscount: number;
+  ppn: number;
+  bill: number;
+  items: OrderProduct[]
+}
+
+export interface CreateTransactionRequest extends CreateOrderRequest {
   createdBy?: string;
   transactionType: string;
   customerName: string;
@@ -40,25 +59,6 @@ export interface UpdateTransactionRequest {
   paymentMethod: string;
   paymentStatus: string;
   payment: number;
-}
-
-export interface OrderProduct {
-  productId: number;
-  qty: number;
-  subtotal: number;
-  notes?: string
-  discount: number
-}
-
-export interface CreateOrderRequest {
-  transactionDate: string;
-  transactionType: string;
-  deliveryType: string;
-  subtotal: number;
-  totalDiscount: number;
-  ppn: number;
-  bill: number;
-  items: OrderProduct[]
 }
 
 export interface GetOrderRequest {

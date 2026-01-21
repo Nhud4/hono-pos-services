@@ -95,7 +95,7 @@ export class ProductDomain {
       } else {
         throw new Error('Invalid image format');
       }
-      imgUrl = await uploadImage(imageBuffer);
+      imgUrl = await uploadImage(imageBuffer, 'product');
     }
 
     const result = await this.repo.createProduct({ ...rest, img: imgUrl });

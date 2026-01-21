@@ -7,8 +7,6 @@ import { UserRepository } from '../repositories/user.repo';
 import {
   CreateOrderRequest,
   CreateTransactionRequest,
-  OrderProduct,
-  Transaction,
   UpdateTransactionRequest,
   GetOrderRequest,
   ListTransactionRequest
@@ -91,7 +89,9 @@ export class TransactionDomain {
       transactionDate: val.transactionDate,
       customerName: val.customerName,
       paymentMethod: val.paymentMethod,
-      bill: val.bill
+      bill: val.bill,
+      tableNumber: val.tableNumber,
+      createdAt: val.createdAt
     }))
 
     return { data, meta };
@@ -121,6 +121,7 @@ export class TransactionDomain {
       ppn: transaction.ppn,
       bill: transaction.bill,
       payment: transaction.payment,
+      createdAt: transaction.createdAt,
       user: {
         code: userData?.code,
         name: userData?.name

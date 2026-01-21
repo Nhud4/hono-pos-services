@@ -2,13 +2,13 @@ import { createClient } from '@supabase/supabase-js';
 import { v4 as uuidv4 } from 'uuid';
 import localConfig from '../libs/config.js';
 
-export async function uploadImage(imageBuffer: Buffer): Promise<string> {
+export async function uploadImage(imageBuffer: Buffer, prefix: string): Promise<string> {
   try {
-    const fileName = `${uuidv4()}.webp`;
+    const fileName = `${prefix}_${uuidv4()}.webp`;
 
     const supabase = createClient(localConfig.supabaseUrl, localConfig.supabaseAnonKey);
 
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('dev_resto')
       .upload(fileName, imageBuffer, {
         contentType: 'image/webp',

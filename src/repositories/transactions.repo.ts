@@ -1,4 +1,5 @@
 import { eq, isNull, and, sql } from 'drizzle-orm';
+import type { InferInsertModel } from 'drizzle-orm';
 import { createDb } from '../libs/db';
 import localConfig from '../libs/config';
 import {
@@ -45,68 +46,6 @@ export class TransactionsRepository {
     const userId = Number(user.id);
 
     const result = await db.transaction(async (tx) => {
-      // cari data order
-      const [existingOrder] = await tx
-        .select()
-        .from(transactions)
-        .where(
-          and(
-            eq(transactions.userId, userId),
-            eq(transactions.transactionType, 'cart'),
-            isNull(transactions.deletedAt),
-          )
-        )
-        .limit(1);
-
-      if (existingOrder) {
-        // kembalikan stock lama
-        const res = await tx.execute(sql`
-          UPDATE products
-          SET stock = stock + tp.qty
-          FROM transaction_products tp
-          WHERE products.id = tp."productId" 
-            AND tp."transactionId" = ${existingOrder.id}
-        `);
-
-        // hapus item lama
-        await tx
-          .delete(transactionProducts)
-          .where(eq(transactionProducts.transactionId, existingOrder.id));
-
-        // update data transaksi
-        await tx
-          .update(transactions)
-          .set({
-            ...doc,
-            userId,
-            createdBy: user.name,
-          })
-          .where(eq(transactions.id, existingOrder.id));
-
-        // / insert item baru
-        const newItems = doc.items.map((i) => ({
-          transactionId: existingOrder.id,
-          productId: i.productId,
-          qty: i.qty,
-          subtotal: i.subtotal,
-          discount: i.discount,
-          notes: i.notes ?? null,
-        }));
-
-        await tx.insert(transactionProducts).values(newItems);
-
-        // update stock product
-        await tx.execute(sql`
-          UPDATE products
-          SET stock = stock - tp.qty
-          FROM transaction_products tp
-          WHERE products.id = tp."productId"
-            AND tp."transactionId" = ${existingOrder.id}
-        `);
-
-        return { code: existingOrder.code || '' };
-      }
-
       // generate code
       const code = await this.generateTransactionCode('TRX');
 
@@ -159,7 +98,9 @@ export class TransactionsRepository {
         transactionDate: transactions.transactionDate,
         customerName: transactions.customerName,
         paymentMethod: transactions.paymentMethod,
-        bill: transactions.bill
+        bill: transactions.bill,
+        tableNumber: transactions.tableNumber,
+        createdAt: transactions.createdAt
       })
         .from(transactions)
         .where(
@@ -235,40 +176,90 @@ export class TransactionsRepository {
   }
 
   async createTransaction(user: GetOrderRequest, payload: CreateTransactionRequest) {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
+    const userId = Number(user.id);
     const doc = {
-      createdBy: payload.createdBy,
+      userId,
+      transactionDate: payload.transactionDate,
       transactionType: payload.transactionType,
+      deliveryType: payload.deliveryType,
+      subtotal: payload.subtotal,
+      totalDiscount: payload.totalDiscount,
+      ppn: payload.ppn,
+      bill: payload.bill,
+      createdBy: user.name,
       customerName: payload.customerName,
       tableNumber: payload.tableNumber.toString(),
       paymentType: payload.paymentType,
       paymentMethod: payload.paymentMethod,
-      paymentStatus: payload.paymentStatus,
-      payment: payload.payment,
-      updatedAt: new Date()
+      paymentStatus: 'finish',
+      payment: payload.payment
     }
 
-    const [result] = await db
-      .update(transactions)
-      .set(doc)
-      .where(eq(transactions.userId, Number(user.id)))
-      .returning();
+    const result = await db.transaction(async (tx) => {
+      // generate code
+      const code = await this.generateTransactionCode('TRX');
+
+      // insert transaksi baru
+      const [newOrder] = await tx
+        .insert(transactions)
+        .values({
+          ...doc,
+          code,
+        })
+        .returning();
+
+      // insert item
+      const items = payload.items.map((i) => ({
+        transactionId: newOrder.id,
+        productId: i.productId,
+        qty: i.qty,
+        subtotal: i.subtotal,
+        discount: i.discount,
+        notes: i.notes ?? null,
+      }));
+      await tx.insert(transactionProducts).values(items);
+
+      // update stock
+      await tx.execute(sql`
+        UPDATE products
+        SET stock = stock - tp.qty
+        FROM transaction_products tp
+        WHERE products.id = tp."productId"
+          AND tp."transactionId" = ${newOrder.id}
+          AND products.stock >= tp.qty
+      `);
+
+      return { code: newOrder.code || '' };
+    });
 
     return result
   }
 
   async updateTransaction(id: string, updates: UpdateTransactionRequest) {
     const db = createDb(localConfig.dbUrl)
-    const doc = {
-      createdBy: updates.createdBy,
-      transactionType: updates.transactionType,
-      customerName: updates.customerName,
-      tableNumber: updates.tableNumber.toString(),
-      paymentType: updates.paymentType,
-      paymentMethod: updates.paymentMethod,
-      paymentStatus: updates.paymentStatus,
+    const doc: Partial<InferInsertModel<typeof transactions>> = {
       payment: updates.payment,
       updatedAt: new Date()
+    }
+
+    if (updates.transactionType) {
+      doc.transactionType = updates.transactionType
+    }
+    if (updates.customerName) {
+      doc.customerName = updates.customerName
+    }
+    if (updates.tableNumber) {
+      doc.tableNumber = updates.tableNumber.toString()
+    }
+    if (updates.paymentType) {
+      doc.paymentType = updates.paymentType
+    }
+    if (updates.paymentMethod) {
+      doc.paymentMethod = updates.paymentMethod
+    }
+    if (updates.paymentStatus) {
+      doc.paymentStatus = updates.paymentStatus
     }
 
     const [result] = await db

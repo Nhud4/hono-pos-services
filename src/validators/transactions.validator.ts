@@ -28,17 +28,29 @@ export const createTransactionSchema = z.object({
   paymentMethod: z.string().optional(),
   paymentStatus: z.enum(['pending', 'success', 'reject', '']),
   payment: z.number().optional(),
+  transactionDate: z.string(),
+  deliveryType: z.enum(['dineIn', 'takeWay', 'reservation']),
+  subtotal: z.number(),
+  totalDiscount: z.number(),
+  ppn: z.number(),
+  bill: z.number(),
+  items: z.array(z.object({
+    productId: z.number().positive('ID produk tidak valid'),
+    qty: z.number().positive('QTY harus lebih dari 0'),
+    discount: z.number(),
+    subtotal: z.number().positive('Subtotal harus lebih dari 0'),
+    notes: z.string().optional()
+  }))
 });
 
 export const updateTransactionSchema = z.object({
-  createdBy: z.string().optional(),
   transactionType: z.enum(['transaction']),
-  customerName: z.string(),
-  tableNumber: z.number().positive('Nomor meja harus lebih dari 0'),
-  paymentType: z.enum(['later', 'now']),
-  paymentMethod: z.string(),
+  customerName: z.string().optional(),
+  tableNumber: z.number().optional(),
+  paymentType: z.enum(['later', 'now', '']),
+  paymentMethod: z.string().optional(),
   paymentStatus: z.enum(['pending', 'success', 'reject', '']),
-  payment: z.number()
+  payment: z.number().optional()
 });
 
 export const transactionIdSchema = z.object({
