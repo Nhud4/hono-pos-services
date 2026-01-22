@@ -123,7 +123,8 @@ export class TransactionsRepository {
           .where(and(...condition))
           .orderBy(desc(transactions.createdAt))
           .limit(limit)
-          .offset(offset),
+          .offset(offset)
+          .fullJoin(users, eq(transactions.userId, users.id)),
         db.$count(
           transactions,
           and(...condition)
@@ -137,7 +138,8 @@ export class TransactionsRepository {
       db.select()
         .from(transactions)
         .where(and(...condition))
-        .orderBy(desc(transactions.createdAt)),
+        .orderBy(desc(transactions.createdAt))
+        .fullJoin(users, eq(transactions.userId, users.id)),
       db.$count(
         transactions,
         and(...condition)

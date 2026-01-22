@@ -89,16 +89,20 @@ export class TransactionDomain {
       currentPage: limit > 0 ? Math.floor(offset / limit) + 1 : 1
     };
 
-    const result = data.map((val) => ({
-      id: val.id,
-      code: val.code,
-      transactionDate: val.transactionDate,
-      customerName: val.customerName,
-      paymentMethod: val.paymentMethod,
-      bill: val.bill,
-      tableNumber: val.tableNumber,
-      createdAt: val.createdAt,
-      paymentStatus: val.paymentStatus
+    const result = data.map(({ transactions, users }) => ({
+      id: transactions?.id,
+      code: transactions?.code,
+      transactionDate: transactions?.transactionDate,
+      customerName: transactions?.customerName,
+      paymentMethod: transactions?.paymentMethod,
+      bill: transactions?.bill,
+      tableNumber: transactions?.tableNumber,
+      createdAt: transactions?.createdAt,
+      paymentStatus: transactions?.paymentStatus,
+      user: {
+        name: users?.name,
+        role: users?.role
+      }
     }))
 
     return { data: result, meta };
