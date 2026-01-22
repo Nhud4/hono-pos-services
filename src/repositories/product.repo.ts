@@ -1,4 +1,4 @@
-import { eq, isNull, and, like } from 'drizzle-orm';
+import { eq, isNull, and, ilike } from 'drizzle-orm';
 import { createDb } from '../libs/db';
 import localConfig from '../libs/config';
 import { products, productsCategory } from '../../drizzle/schema';
@@ -39,7 +39,7 @@ export class ProductRepository {
     const condition = [isNull(products.deletedAt)]
 
     if (search) {
-      condition.push(like(products.name, `%${search}%`))
+      condition.push(ilike(products.name, `%${search}%`))
     }
 
     if (categoryId) {
@@ -69,7 +69,7 @@ export class ProductRepository {
         .limit(limit)
         .offset(offset)
         .innerJoin(productsCategory, eq(products.categoryId, productsCategory.id)),
-      db.$count(products, isNull(products.deletedAt))
+      db.$count(products, and(...condition))
     ]);
     return { data: dataResult, total: totalResult };
   }

@@ -74,7 +74,13 @@ export class TransactionDomain {
     const limit = parseInt(params.size)
     const offset = (parseInt(params.page) - 1) * limit
 
-    const result = await this.repo.getAllTransactions(limit, offset)
+    const result = await this.repo.getAllTransactions(
+      limit,
+      offset,
+      params.search,
+      params.date,
+      params.paymentStatus
+    )
 
     const meta: PaginationMeta = {
       total: result.total,
@@ -91,7 +97,8 @@ export class TransactionDomain {
       paymentMethod: val.paymentMethod,
       bill: val.bill,
       tableNumber: val.tableNumber,
-      createdAt: val.createdAt
+      createdAt: val.createdAt,
+      paymentStatus: val.paymentStatus
     }))
 
     return { data, meta };

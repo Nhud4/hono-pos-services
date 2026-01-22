@@ -92,4 +92,6 @@ export interface ListTransactionRequest {
   page: string;
   size: string;
   search?: string;
+  paymentStatus?: string;
+  date?: string
 }

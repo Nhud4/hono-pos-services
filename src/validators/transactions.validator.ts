@@ -66,7 +66,9 @@ export const listTransactionSchema = z.object({
     .string()
     .nonempty('Size tidak boleh kosong')
     .min(1, 'Page harus lebih dar 1'),
-  search: z.string().optional()
+  search: z.string().optional(),
+  paymentStatus: z.string().optional(),
+  date: z.string().optional()
 })
 
 export type CreateTransactionSchema = z.infer<typeof createTransactionSchema>

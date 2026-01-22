@@ -1,4 +1,4 @@
-import { eq, isNull, and, sql } from 'drizzle-orm';
+import { eq, isNull, and, sql, desc, ilike, or } from 'drizzle-orm';
 import type { InferInsertModel } from 'drizzle-orm';
 import { createDb } from '../libs/db';
 import localConfig from '../libs/config';
@@ -88,36 +88,44 @@ export class TransactionsRepository {
   }
 
 
-  async getAllTransactions(limit: number, offset: number) {
+  async getAllTransactions(
+    limit: number,
+    offset: number,
+    search?: string,
+    date?: string,
+    paymentStatus?: string
+  ) {
     const db = createDb(localConfig.dbUrl)
+    const condition = [
+      isNull(transactions.deletedAt),
+      eq(transactions.transactionType, 'transaction'),
+    ]
+
+    if (search) {
+      condition.push(sql`
+      ${transactions.customerName} ilike ${`%${search}%`} 
+      or ${transactions.code} ilike ${`%${search}%`}
+      `)
+    }
+
+    if (date) {
+      condition.push(ilike(transactions.transactionDate, `${date}%`))
+    }
+
+    if (paymentStatus) {
+      condition.push(eq(transactions.paymentStatus, paymentStatus))
+    }
 
     const [result, total] = await Promise.all([
-      db.select({
-        id: transactions.id,
-        code: transactions.code,
-        transactionDate: transactions.transactionDate,
-        customerName: transactions.customerName,
-        paymentMethod: transactions.paymentMethod,
-        bill: transactions.bill,
-        tableNumber: transactions.tableNumber,
-        createdAt: transactions.createdAt
-      })
+      db.select()
         .from(transactions)
-        .where(
-          and(
-            isNull(transactions.deletedAt),
-            eq(transactions.transactionType, 'transaction'),
-          )
-        )
-        .orderBy(transactions.createdAt)
+        .where(and(...condition))
+        .orderBy(desc(transactions.createdAt))
         .limit(limit)
         .offset(offset),
       db.$count(
         transactions,
-        and(
-          isNull(transactions.deletedAt),
-          eq(transactions.transactionType, 'transaction'),
-        )
+        and(...condition)
       )
     ])
 
@@ -192,7 +200,7 @@ export class TransactionsRepository {
       tableNumber: payload.tableNumber.toString(),
       paymentType: payload.paymentType,
       paymentMethod: payload.paymentMethod,
-      paymentStatus: 'finish',
+      paymentStatus: payload.paymentStatus,
       payment: payload.payment
     }
 
