@@ -55,7 +55,6 @@ export const listUserSchema = z.object({
 export const loginSchema = z.object({
   username: z.string().min(1, 'Username is required'),
   password: z.string().min(1, 'Password is required'),
-  role: z.enum(['cashier', 'waiters', 'kitchen', 'manager', 'inventory']),
 });
 
 export type CreateUserSchema = z.infer<typeof createUserSchema>

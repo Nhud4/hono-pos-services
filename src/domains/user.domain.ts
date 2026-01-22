@@ -88,7 +88,6 @@ export class UserDomain {
     const user = await this.repo.verifyPassword(
       loginData.username,
       loginData.password,
-      loginData.role,
     );
     if (!user) return null;
 

@@ -107,7 +107,7 @@ export class UserRepository {
     return result.length > 0;
   }
 
-  async verifyPassword(username: string, password: string, role: string): Promise<User | null> {
+  async verifyPassword(username: string, password: string): Promise<User | null> {
     const db = createDb(localConfig.dbUrl)
 
     const result = await db.select()
@@ -115,7 +115,6 @@ export class UserRepository {
       .where(
         and(
           eq(users.username, username),
-          eq(users.role, role),
           isNull(users.deletedAt)
         )
       );
