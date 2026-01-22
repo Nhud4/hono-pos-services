@@ -116,13 +116,28 @@ export class TransactionsRepository {
       condition.push(eq(transactions.paymentStatus, paymentStatus))
     }
 
+    if (limit > 0) {
+      const [result, total] = await Promise.all([
+        db.select()
+          .from(transactions)
+          .where(and(...condition))
+          .orderBy(desc(transactions.createdAt))
+          .limit(limit)
+          .offset(offset),
+        db.$count(
+          transactions,
+          and(...condition)
+        )
+      ])
+
+      return { data: result, total }
+    }
+
     const [result, total] = await Promise.all([
       db.select()
         .from(transactions)
         .where(and(...condition))
-        .orderBy(desc(transactions.createdAt))
-        .limit(limit)
-        .offset(offset),
+        .orderBy(desc(transactions.createdAt)),
       db.$count(
         transactions,
         and(...condition)

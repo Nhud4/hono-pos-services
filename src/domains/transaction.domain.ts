@@ -72,9 +72,9 @@ export class TransactionDomain {
 
   async listTransaction(params: ListTransactionRequest): Promise<WrapperMetaData> {
     const limit = parseInt(params.size)
-    const offset = (parseInt(params.page) - 1) * limit
+    const offset = limit > 0 ? (parseInt(params.page) - 1) * limit : 0
 
-    const result = await this.repo.getAllTransactions(
+    const { data, total } = await this.repo.getAllTransactions(
       limit,
       offset,
       params.search,
@@ -83,13 +83,13 @@ export class TransactionDomain {
     )
 
     const meta: PaginationMeta = {
-      total: result.total,
+      total: total,
       limit,
-      totalPages: result.total > 0 ? Math.ceil(result.total / limit) : 1,
-      currentPage: Math.floor(offset / limit) + 1
+      totalPages: total > 0 ? Math.ceil(total / limit) : 1,
+      currentPage: limit > 0 ? Math.floor(offset / limit) + 1 : 1
     };
 
-    const data = result.data.map((val) => ({
+    const result = data.map((val) => ({
       id: val.id,
       code: val.code,
       transactionDate: val.transactionDate,
@@ -101,7 +101,7 @@ export class TransactionDomain {
       paymentStatus: val.paymentStatus
     }))
 
-    return { data, meta };
+    return { data: result, meta };
   }
 
   async detailTransaction(id: string): Promise<WrapperData> {
