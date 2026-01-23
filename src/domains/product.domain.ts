@@ -34,10 +34,10 @@ export class ProductDomain {
     );
 
     const meta: PaginationMeta = {
-      total: total,
-      limit,
-      totalPages: total > 0 ? Math.ceil(total / limit) : 1,
-      currentPage: limit > 0 ? Math.floor(offset / limit) + 1 : 1
+      page: Number(params.page),
+      totalData: total,
+      totalPage: total > 0 ? Math.ceil(total / limit) : 1,
+      totalPerPage: limit,
     };
 
     const newData = data.map((val) => ({

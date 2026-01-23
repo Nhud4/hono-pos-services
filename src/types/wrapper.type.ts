@@ -1,10 +1,10 @@
 import { ContentfulStatusCode } from "hono/utils/http-status";
 
 export interface PaginationMeta {
-  total: number;
-  limit: number;
-  totalPages: number;
-  currentPage: number;
+  page: number
+  totalData: number
+  totalPage: number
+  totalPerPage: number
 }
 
 export interface ApiResponse<T = any> {

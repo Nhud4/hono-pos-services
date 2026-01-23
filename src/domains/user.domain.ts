@@ -30,10 +30,10 @@ export class UserDomain {
     const result = await this.repo.getAllUsers(limit, offset);
 
     const meta: PaginationMeta = {
-      total: result.total,
-      limit,
-      totalPages: result.total > 0 ? Math.ceil(result.total / limit) : 1,
-      currentPage: Math.floor(offset / limit) + 1
+      page: Number(params.page),
+      totalData: result.total,
+      totalPage: result.total > 0 ? Math.ceil(result.total / limit) : 1,
+      totalPerPage: limit,
     };
 
     return { data: result.data, meta };

@@ -52,13 +52,13 @@ export interface CreateTransactionRequest extends CreateOrderRequest {
 
 export interface UpdateTransactionRequest {
   createdBy?: string;
-  transactionType: string;
-  customerName: string;
-  tableNumber: number;
-  paymentType: string;
-  paymentMethod: string;
-  paymentStatus: string;
-  payment: number;
+  transactionType?: string;
+  customerName?: string;
+  tableNumber?: number;
+  paymentType?: string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  payment?: number;
 }
 
 export interface GetOrderRequest {

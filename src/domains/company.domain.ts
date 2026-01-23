@@ -14,13 +14,11 @@ export class CompanyDomain {
   async getAllCompanies(limit: number = 50, offset: number = 0): Promise<{ data: Company[], meta: PaginationMeta }> {
     const result = await this.repo.getAllCompanies(limit, offset);
 
-    const totalPages = Math.ceil(result.total / limit);
-    const currentPage = Math.floor(offset / limit) + 1;
     const meta: PaginationMeta = {
-      total: result.total,
-      limit,
-      totalPages,
-      currentPage
+      page: Math.floor(offset / limit) + 1,
+      totalData: result.total,
+      totalPage: result.total > 0 ? Math.ceil(result.total / limit) : 1,
+      totalPerPage: limit,
     };
 
     return { data: result.data, meta };
