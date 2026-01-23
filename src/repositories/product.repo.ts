@@ -122,7 +122,22 @@ export class ProductRepository {
       img: product.img
     }
 
-    const result = await db.insert(products).values(doc).returning();
+    const result = await db.transaction(async (tx) => {
+      const product = await tx.insert(products).values(doc).returning();
+
+      // get category
+      const [category] = await tx.select()
+        .from(productsCategory)
+        .where(eq(productsCategory.id, doc.categoryId))
+        .limit(1)
+
+      // update category
+      await tx.update(productsCategory)
+        .set({ totalProduct: (category.totalProduct || 0) + 1 })
+        .where(eq(productsCategory.id, doc.categoryId))
+
+      return product
+    })
     return convertToProduct(result[0]);
   }
 
