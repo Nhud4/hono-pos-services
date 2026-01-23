@@ -27,14 +27,32 @@ export class ProductsCategoryRepository {
   }> {
     const db = createDb(localConfig.dbUrl)
 
+    if (limit > 0) {
+      const [dataResult, totalResult] = await Promise.all([
+        db
+          .select()
+          .from(productsCategory)
+          .where(isNull(productsCategory.deletedAt))
+          .orderBy(productsCategory.createdAt)
+          .limit(limit)
+          .offset(offset),
+        db.$count(
+          productsCategory,
+          isNull(productsCategory.deletedAt)
+        )
+      ]);
+      return {
+        data: dataResult.map(convertToProductsCategory),
+        total: totalResult
+      };
+    }
+
     const [dataResult, totalResult] = await Promise.all([
       db
         .select()
         .from(productsCategory)
         .where(isNull(productsCategory.deletedAt))
-        .orderBy(productsCategory.createdAt)
-        .limit(limit)
-        .offset(offset),
+        .orderBy(productsCategory.createdAt),
       db.$count(
         productsCategory,
         isNull(productsCategory.deletedAt)

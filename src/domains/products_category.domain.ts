@@ -22,18 +22,18 @@ export class ProductsCategoryDomain {
 
   async getAllProductsCategories(params: ListProductsCategoryRequest): Promise<WrapperMetaData> {
     const limit = parseInt(params.size)
-    const offset = (parseInt(params.page) - 1) * limit
+    const offset = limit > 0 ? (parseInt(params.page) - 1) * limit : 0
 
-    const result = await this.repo.getAllProductsCategories(limit, offset);
+    const { data, total } = await this.repo.getAllProductsCategories(limit, offset);
 
     const meta: PaginationMeta = {
       page: Number(params.page),
-      totalData: result.total,
-      totalPage: result.total > 0 ? Math.ceil(result.total / limit) : 1,
+      totalData: total,
+      totalPage: total > 0 ? Math.ceil(total / limit) : 1,
       totalPerPage: limit,
     };
 
-    return { data: result.data, meta };
+    return { data: data, meta };
   }
 
   async getProductsCategoryById(id: string): Promise<WrapperData> {
