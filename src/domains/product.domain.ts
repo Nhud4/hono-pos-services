@@ -68,7 +68,16 @@ export class ProductDomain {
     if (!data) {
       return wrapperData(null, DataNotFound())
     }
-    return wrapperData(data, null)
+
+    const newData = {
+      ...data.products,
+      category: {
+        id: data.products_category.id,
+        name: data.products_category.name
+      }
+    }
+
+    return wrapperData(newData, null)
   }
 
   async createProduct(productData: CreateProductRequest): Promise<WrapperData> {

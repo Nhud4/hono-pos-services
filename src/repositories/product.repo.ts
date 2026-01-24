@@ -74,10 +74,10 @@ export class ProductRepository {
     return { data: dataResult, total: totalResult };
   }
 
-  async getProductById(id: string): Promise<Product | null> {
+  async getProductById(id: string) {
     const db = createDb(localConfig.dbUrl)
 
-    const result = await db
+    const [result] = await db
       .select()
       .from(products)
       .where(
@@ -85,8 +85,9 @@ export class ProductRepository {
           eq(products.id, parseInt(id)),
           isNull(products.deletedAt)
         )
-      );
-    return result[0] ? convertToProduct(result[0]) : null;
+      )
+      .innerJoin(productsCategory, eq(products.categoryId, productsCategory.id))
+    return result;
   }
 
   async getProductByName(name: string): Promise<Product | null> {
