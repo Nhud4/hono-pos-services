@@ -28,13 +28,19 @@ export const updateUserSchema = z.object({
     .string()
     .nonempty('Username tidak boleh kosong')
     .min(4, 'Username harus lebih dari 4 karakter'),
-  password: z
-    .string()
-    .nonempty('Kata sandi tidka boleh kosong')
-    .min(6, 'Kata sandi harus lebih dari 6 karakter'),
+  password: z.string().optional(),
   active: z.enum(['true', 'false']),
   companyId: z.number().optional(),
-});
+}).refine(
+  (data) => {
+    if (!data.password) return true
+    if (data.password && data.password?.length < 6) return false
+  },
+  {
+    message: 'Password harus lebih dari 6 karakter',
+    path: ['password'],
+  }
+)
 
 export const userIdSchema = z.object({
   id: z.string().regex(/^\d+$/, 'ID tidak valid'),

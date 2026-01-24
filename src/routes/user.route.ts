@@ -10,7 +10,7 @@ const router = new Hono();
 router.get('/users', jwtAuth(), validate('query', schema.listUserSchema), handler.getAllUsersHandler);
 router.get('/users/:id', jwtAuth(), validate('param', schema.userIdSchema), handler.getUserByIdHandler);
 router.post('/users', basicAuth(), validate('json', schema.createUserSchema), handler.createUserHandler);
-router.put('/users/:id', jwtAuth(), validate('json', schema.createUserSchema), handler.updateUserHandler);
+router.put('/users/:id', jwtAuth(), validate('json', schema.updateUserSchema), handler.updateUserHandler);
 router.delete('/users/:id', jwtAuth(), validate('param', schema.userIdSchema), handler.deleteUserHandler);
 
 // Auth routes
