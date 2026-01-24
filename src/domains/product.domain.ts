@@ -123,7 +123,21 @@ export class ProductDomain {
       return wrapperData(null, DataNotFound('Kategori tidak ditemukan'))
     }
 
-    const result = await this.repo.updateProduct(id, updates);
+    const { img, ...rest } = updates;
+    let imgUrl = ''
+    if (img) {
+      let imageBuffer: Buffer;
+      if (typeof img === 'object' && img && 'arrayBuffer' in img) {
+        imageBuffer = Buffer.from(await (img as File).arrayBuffer());
+      } else if (typeof img === 'string') {
+        imageBuffer = Buffer.from(img, 'base64');
+      } else {
+        throw new Error('Invalid image format');
+      }
+      imgUrl = await uploadImage(imageBuffer, 'product');
+    }
+
+    const result = await this.repo.updateProduct(id, { ...rest, img: imgUrl });
     return wrapperData(result, null)
   }
 
