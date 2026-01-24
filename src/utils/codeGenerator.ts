@@ -10,9 +10,9 @@ export function getDiscountPrice(
   price: number,
   discount: number
 ) {
-  if (type === 'percentage') return Math.round(price * (1 - discount / 100))
+  if (type === 'percentage' && discount > 0) return Math.round(price * (1 - discount / 100))
 
-  if (type === 'nominal') return discount
+  if (type === 'nominal' && discount > 0) return discount
 
   return 0
 }
