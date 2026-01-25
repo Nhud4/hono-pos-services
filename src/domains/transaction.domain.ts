@@ -1,8 +1,9 @@
 import { wrapperData } from '../utils/wrapper';
-import { DataNotFound } from '../utils/errors';
+import { DataNotFound, BadRequest } from '../utils/errors';
 import { WrapperData, PaginationMeta, WrapperMetaData } from '../types/wrapper.type';
 import { TransactionsRepository } from '../repositories/transactions.repo';
 import { UserRepository } from '../repositories/user.repo';
+import { ProductRepository } from '../repositories/product.repo';
 import {
   CreateOrderRequest,
   CreateTransactionRequest,
@@ -14,10 +15,12 @@ import {
 export class TransactionDomain {
   private repo: TransactionsRepository
   private user: UserRepository
+  private product: ProductRepository
 
   constructor() {
     this.repo = new TransactionsRepository()
     this.user = new UserRepository()
+    this.product = new ProductRepository()
   }
 
   async getOrder(user: GetOrderRequest): Promise<WrapperData> {
@@ -156,6 +159,18 @@ export class TransactionDomain {
     const checkUser = await this.user.getUserById(user.id)
     if (!checkUser) {
       return wrapperData(null, DataNotFound('User not found'))
+    }
+
+    // validate product stock
+    for (const item of payload.items) {
+      const product = await this.product.getProductById(item.productId.toString())
+      if (!product) {
+        return wrapperData(null, DataNotFound(`Product with id ${item.productId} not found`))
+      }
+      const availableStock = product.products.stock ?? 0
+      if (item.qty > availableStock) {
+        return wrapperData(null, BadRequest(`Insufficient stock for product ${product.products.name}. Available: ${availableStock}, Requested: ${item.qty}`))
+      }
     }
 
     const result = await this.repo.createTransaction(user, payload)
