@@ -1,6 +1,5 @@
 import { wrapperData } from '../utils/wrapper';
 import { DataNotFound } from '../utils/errors';
-import { getDiscountPrice } from '../utils/codeGenerator';
 import { WrapperData, PaginationMeta, WrapperMetaData } from '../types/wrapper.type';
 import { TransactionsRepository } from '../repositories/transactions.repo';
 import { UserRepository } from '../repositories/user.repo';
@@ -137,18 +136,15 @@ export class TransactionDomain {
         code: userData?.code,
         name: userData?.name
       },
-      items: product.map((val) => ({
-        id: val.products.id,
-        name: val.products.name,
-        price: val.products.normalPrice,
-        discount: getDiscountPrice(
-          val.products.discountType,
-          val.products.normalPrice || 0,
-          val.products.discount || 0
-        ),
-        note: val.transaction_products.notes,
-        qty: val.transaction_products.qty,
-        subtotal: val.transaction_products.subtotal
+      items: product.map(({ products: prd, transaction_products: trp }) => ({
+        id: prd.id,
+        name: prd.name,
+        price: prd.normalPrice,
+        discountPrice: prd.discountPrice,
+        discount: prd.discount,
+        note: trp.notes,
+        qty: trp.qty,
+        subtotal: trp.subtotal
       }))
     }
 

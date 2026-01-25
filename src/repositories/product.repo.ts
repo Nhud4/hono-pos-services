@@ -107,6 +107,11 @@ export class ProductRepository {
 
   async createProduct(product: CreateProductRequest): Promise<Product> {
     const db = createDb(localConfig.dbUrl)
+    let discountPrice = 0
+    if (product.discount && parseInt(product.discount) > 0) {
+      discountPrice = parseInt(product.normalPrice) * parseInt(product.discount) / 100
+    }
+
     const doc = {
       code: generateCode('MNU'),
       name: product.name.toLowerCase(),
@@ -120,7 +125,8 @@ export class ProductRepository {
       available: true,
       stock: parseInt(product.stock),
       allocation: product.allocation,
-      img: product.img
+      img: product.img,
+      discountPrice
     }
 
     const result = await db.transaction(async (tx) => {
@@ -144,6 +150,11 @@ export class ProductRepository {
 
   async updateProduct(id: string, updates: UpdateProductRequest): Promise<Product | null> {
     const db = createDb(localConfig.dbUrl)
+    let discountPrice = 0
+    if (updates.discount && parseInt(updates.discount) > 0) {
+      discountPrice = parseInt(updates.normalPrice) * parseInt(updates.discount) / 100
+    }
+
     const updateData = {
       ...updates,
       name: updates.name.toLowerCase(),
@@ -155,7 +166,8 @@ export class ProductRepository {
       discount: updates.discount ? parseInt(updates.discount) : 0,
       active: updates.active === 'true' ? true : false,
       stock: parseInt(updates.stock),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      discountPrice
     };
 
     const result = await db
@@ -170,12 +182,27 @@ export class ProductRepository {
   async deleteProduct(id: string): Promise<Product | null> {
     const db = createDb(localConfig.dbUrl)
 
-    const result = await db.
-      update(products)
-      .set({ deletedAt: new Date() })
-      .where(eq(products.id, parseInt(id)))
-      .returning()
+    const result = await db.transaction(async (tx) => {
+      const [remove] = await tx.
+        update(products)
+        .set({ deletedAt: new Date() })
+        .where(eq(products.id, parseInt(id)))
+        .returning()
 
-    return result[0] ? convertToProduct(result[0]) : null; // Drizzle doesn't return affected rows, assume success
+      // get category
+      const [category] = await tx.select()
+        .from(productsCategory)
+        .where(eq(productsCategory.id, remove.categoryId as number))
+        .limit(1)
+
+      // update category
+      await tx.update(productsCategory)
+        .set({ totalProduct: (category.totalProduct || 0) + 1 })
+        .where(eq(productsCategory.id, remove.categoryId as number))
+
+      return remove
+    })
+
+    return result ? convertToProduct(result) : null; // Drizzle doesn't return affected rows, assume success
   }
 }

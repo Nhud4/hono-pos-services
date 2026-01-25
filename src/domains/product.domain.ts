@@ -3,7 +3,6 @@ import { ProductsCategoryRepository } from '../repositories/products_category.re
 import { wrapperData } from '../utils/wrapper';
 import { BadRequest, DataNotFound } from '../utils/errors';
 import { WrapperData, PaginationMeta, WrapperMetaData } from '../types/wrapper.type';
-import { getDiscountPrice } from '../utils/codeGenerator';
 import { uploadImage } from '../utils/imageUpload';
 import {
   Product,
@@ -40,23 +39,20 @@ export class ProductDomain {
       totalPerPage: limit,
     };
 
-    const newData = data.map((val) => ({
-      id: val.products.id,
-      code: val.products.code,
-      name: val.products.name,
-      price: val.products.normalPrice,
-      discount: getDiscountPrice(
-        val.products.discountType,
-        val.products.normalPrice || 0,
-        val.products.discount || 0
-      ),
-      stock: val.products.stock,
-      active: val.products.active,
-      available: val.products.available,
-      img: val.products.img,
+    const newData = data.map(({ products: prd, products_category: cat }) => ({
+      id: prd.id,
+      code: prd.code,
+      name: prd.name,
+      price: prd.normalPrice,
+      discount: prd.discount,
+      discountPrice: prd.discountPrice || 0,
+      stock: prd.stock,
+      active: prd.active,
+      available: prd.available,
+      img: prd.img,
       category: {
-        id: val.products_category.id,
-        name: val.products_category.name
+        id: cat.id,
+        name: cat.name
       }
     }))
 
