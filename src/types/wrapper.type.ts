@@ -1,10 +1,10 @@
-import { ContentfulStatusCode } from "hono/utils/http-status";
+import { ContentfulStatusCode } from 'hono/utils/http-status';
 
 export interface PaginationMeta {
-  page: number
-  totalData: number
-  totalPage: number
-  totalPerPage: number
+  page: number;
+  totalData: number;
+  totalPage: number;
+  totalPerPage: number;
 }
 
 export interface ApiResponse<T = any> {
@@ -22,10 +22,10 @@ export interface ErrorCustomType {
 
 export interface WrapperData<T = any> {
   data: T | null;
-  error: ApiResponse | null
+  error: ApiResponse | null;
 }
 
 export interface WrapperMetaData<T = any> {
   data: T;
-  meta: PaginationMeta
+  meta: PaginationMeta;
 }

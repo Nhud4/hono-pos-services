@@ -1,10 +1,7 @@
 import { z } from 'zod';
 
 export const createCompanySchema = z.object({
-  name: z
-    .string()
-    .nonempty('Nama tidak boleh kosong')
-    .min(4, 'Name harus lebih dari 4 karakter'),
+  name: z.string().nonempty('Nama tidak boleh kosong').min(4, 'Name harus lebih dari 4 karakter'),
   address: z
     .string()
     .nonempty('Alamat tidak boleh kosong')
@@ -18,10 +15,7 @@ export const createCompanySchema = z.object({
 });
 
 export const updateCompanySchema = z.object({
-  name: z
-    .string()
-    .nonempty('Nama tidak boleh kosong')
-    .min(4, 'Name harus lebih dari 4 karakter'),
+  name: z.string().nonempty('Nama tidak boleh kosong').min(4, 'Name harus lebih dari 4 karakter'),
   address: z
     .string()
     .nonempty('Alamat tidak boleh kosong')
@@ -38,6 +32,6 @@ export const companyIdSchema = z.object({
   id: z.string().regex(/^\d+$/, 'ID tidak valid'),
 });
 
-export type CreateCompanySchema = z.infer<typeof createCompanySchema>
-export type UpdateCompanySchema = z.infer<typeof updateCompanySchema>
-export type CompanyIdSchema = z.infer<typeof companyIdSchema>
+export type CreateCompanySchema = z.infer<typeof createCompanySchema>;
+export type UpdateCompanySchema = z.infer<typeof updateCompanySchema>;
+export type CompanyIdSchema = z.infer<typeof companyIdSchema>;

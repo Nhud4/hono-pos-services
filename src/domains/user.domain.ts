@@ -11,7 +11,7 @@ import {
   UpdateUserRequest,
   LoginRequest,
   LoginResponse,
-  ListUserRequest
+  ListUserRequest,
 } from '../types/user.type';
 
 export class UserDomain {
@@ -23,9 +23,9 @@ export class UserDomain {
     this.companyRepo = new CompanyRepository();
   }
 
-  async getAllUsers(params: ListUserRequest): Promise<{ data: User[], meta: PaginationMeta }> {
-    const limit = parseInt(params.size)
-    const offset = (parseInt(params.page) - 1) * limit
+  async getAllUsers(params: ListUserRequest): Promise<{ data: User[]; meta: PaginationMeta }> {
+    const limit = parseInt(params.size);
+    const offset = (parseInt(params.page) - 1) * limit;
 
     const result = await this.repo.getAllUsers(limit, offset);
 
@@ -42,30 +42,30 @@ export class UserDomain {
   async getUserById(id: string): Promise<WrapperData> {
     const data = await this.repo.getUserById(id);
     if (!data) {
-      return wrapperData(null, DataNotFound())
+      return wrapperData(null, DataNotFound());
     }
 
-    return wrapperData(data, null)
+    return wrapperData(data, null);
   }
 
   async createUser(userData: CreateUserRequest): Promise<WrapperData> {
     this.validateCreateUser(userData);
     if (userData.companyId) {
-      const companyId = userData.companyId.toString()
-      const company = await this.companyRepo.getCompanyById(companyId)
+      const companyId = userData.companyId.toString();
+      const company = await this.companyRepo.getCompanyById(companyId);
       if (!company) {
-        return wrapperData(null, DataNotFound())
+        return wrapperData(null, DataNotFound());
       }
     }
 
     // check username
-    const check = await this.repo.getUserByUsername(userData.username)
+    const check = await this.repo.getUserByUsername(userData.username);
     if (check) {
-      return wrapperData(null, BadRequest('Username telah digunakan'))
+      return wrapperData(null, BadRequest('Username telah digunakan'));
     }
 
     const result = await this.repo.createUser(userData);
-    return wrapperData(result, null)
+    return wrapperData(result, null);
   }
 
   async updateUser(id: string, updates: UpdateUserRequest): Promise<User | null> {
@@ -85,14 +85,11 @@ export class UserDomain {
   }
 
   async login(loginData: LoginRequest): Promise<LoginResponse | null> {
-    const user = await this.repo.verifyPassword(
-      loginData.username,
-      loginData.password,
-    );
+    const user = await this.repo.verifyPassword(loginData.username, loginData.password);
     if (!user) return null;
 
-    const now = Math.floor(Date.now() / 1000)
-    const expSeconds = 60 * 60 * 24 // 1 hari
+    const now = Math.floor(Date.now() / 1000);
+    const expSeconds = 60 * 60 * 24; // 1 hari
 
     const payload = {
       id: user.id,
@@ -133,7 +130,10 @@ export class UserDomain {
     if (updates.role !== undefined && (!updates.role || updates.role.trim().length === 0)) {
       throw new Error('User role cannot be empty');
     }
-    if (updates.username !== undefined && (!updates.username || updates.username.trim().length === 0)) {
+    if (
+      updates.username !== undefined &&
+      (!updates.username || updates.username.trim().length === 0)
+    ) {
       throw new Error('Username cannot be empty');
     }
     if (updates.password !== undefined && updates.password.length < 6) {

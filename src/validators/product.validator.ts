@@ -11,21 +11,13 @@ export const createProductSchema = z.object({
     .string()
     .nonempty('Harga normal tidak boleh kosong')
     .min(1, 'Harga normal harus lebih dari 1'),
-  hpp: z
-    .string()
-    .nonempty('HPP tidak boleh kosong')
-    .min(1, 'HPP harus lebih dari 1'),
+  hpp: z.string().nonempty('HPP tidak boleh kosong').min(1, 'HPP harus lebih dari 1'),
   discount: z.string().optional(),
-  discountType: z
-    .enum(['nominal', 'percentage', ''])
-    .optional(),
-  stock: z
-    .string()
-    .nonempty('Stock tidak boleh kosong')
-    .min(1, 'Stock harus lebih dari 1'),
+  discountType: z.enum(['nominal', 'percentage', '']).optional(),
+  stock: z.string().nonempty('Stock tidak boleh kosong').min(1, 'Stock harus lebih dari 1'),
   active: z.enum(['true', 'false']),
   allocation: z.string(),
-  img: z.any()
+  img: z.any(),
 });
 
 export const updateProductSchema = z.object({
@@ -39,21 +31,13 @@ export const updateProductSchema = z.object({
     .string()
     .nonempty('Harga normal tidak boleh kosong')
     .min(1, 'Harga normal harus lebih dari 1'),
-  hpp: z
-    .string()
-    .nonempty('HPP tidak boleh kosong')
-    .min(1, 'HPP harus lebih dari 1'),
+  hpp: z.string().nonempty('HPP tidak boleh kosong').min(1, 'HPP harus lebih dari 1'),
   discount: z.string().optional(),
-  discountType: z
-    .enum(['nominal', 'percentage', ''])
-    .optional(),
-  stock: z
-    .string()
-    .nonempty('Stock tidak boleh kosong')
-    .min(1, 'Stock harus lebih dari 1'),
+  discountType: z.enum(['nominal', 'percentage', '']).optional(),
+  stock: z.string().nonempty('Stock tidak boleh kosong').min(1, 'Stock harus lebih dari 1'),
   active: z.enum(['true', 'false']),
   allocation: z.string(),
-  img: z.any()
+  img: z.any(),
 });
 
 export const productIdSchema = z.object({
@@ -61,19 +45,14 @@ export const productIdSchema = z.object({
 });
 
 export const listProductsSchema = z.object({
-  page: z
-    .string()
-    .nonempty('Page tidak boleh kosong')
-    .min(1, 'Page harus lebih dar 1'),
-  size: z
-    .string()
-    .nonempty('Size tidak boleh kosong'),
+  page: z.string().nonempty('Page tidak boleh kosong').min(1, 'Page harus lebih dar 1'),
+  size: z.string().nonempty('Size tidak boleh kosong'),
   search: z.string().optional(),
   categoryId: z.string().optional(),
-  allocation: z.string().optional()
-})
+  allocation: z.string().optional(),
+});
 
-export type CreateProductSchema = z.infer<typeof createProductSchema>
-export type UpdateProductSchema = z.infer<typeof updateProductSchema>
-export type ProductIdSchema = z.infer<typeof productIdSchema>
-export type ListProductsSchema = z.infer<typeof listProductsSchema>
+export type CreateProductSchema = z.infer<typeof createProductSchema>;
+export type UpdateProductSchema = z.infer<typeof updateProductSchema>;
+export type ProductIdSchema = z.infer<typeof productIdSchema>;
+export type ListProductsSchema = z.infer<typeof listProductsSchema>;

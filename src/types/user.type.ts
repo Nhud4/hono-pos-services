@@ -54,7 +54,7 @@ export interface ListUserRequest {
 }
 
 export interface LoginData {
-  id: string,
-  role: string,
-  username: string,
+  id: string;
+  role: string;
+  username: string;
 }

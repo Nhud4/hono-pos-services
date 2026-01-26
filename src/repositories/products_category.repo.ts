@@ -21,11 +21,14 @@ function convertToProductsCategory(drizzleCategory: any): ProductsCategory {
 }
 
 export class ProductsCategoryRepository {
-  async getAllProductsCategories(limit: number, offset: number): Promise<{
-    data: ProductsCategory[],
-    total: number
+  async getAllProductsCategories(
+    limit: number,
+    offset: number
+  ): Promise<{
+    data: ProductsCategory[];
+    total: number;
   }> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     if (limit > 0) {
       const [dataResult, totalResult] = await Promise.all([
@@ -36,14 +39,11 @@ export class ProductsCategoryRepository {
           .orderBy(productsCategory.createdAt)
           .limit(limit)
           .offset(offset),
-        db.$count(
-          productsCategory,
-          isNull(productsCategory.deletedAt)
-        )
+        db.$count(productsCategory, isNull(productsCategory.deletedAt)),
       ]);
       return {
         data: dataResult.map(convertToProductsCategory),
-        total: totalResult
+        total: totalResult,
       };
     }
 
@@ -53,63 +53,56 @@ export class ProductsCategoryRepository {
         .from(productsCategory)
         .where(isNull(productsCategory.deletedAt))
         .orderBy(productsCategory.createdAt),
-      db.$count(
-        productsCategory,
-        isNull(productsCategory.deletedAt)
-      )
+      db.$count(productsCategory, isNull(productsCategory.deletedAt)),
     ]);
     return {
       data: dataResult.map(convertToProductsCategory),
-      total: totalResult
+      total: totalResult,
     };
   }
 
   async getProductsCategoryById(id: string): Promise<ProductsCategory | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const result = await db
       .select()
       .from(productsCategory)
-      .where(
-        and(
-          eq(productsCategory.id, parseInt(id)),
-          isNull(productsCategory.deletedAt)
-        )
-      );
+      .where(and(eq(productsCategory.id, parseInt(id)), isNull(productsCategory.deletedAt)));
     return result[0] ? convertToProductsCategory(result[0]) : null;
   }
 
   async getProductsCategoryByName(name: string): Promise<ProductsCategory | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const result = await db
       .select()
       .from(productsCategory)
-      .where(
-        and(
-          eq(productsCategory.name, name),
-          isNull(productsCategory.deletedAt)
-        )
-      );
+      .where(and(eq(productsCategory.name, name), isNull(productsCategory.deletedAt)));
     return result[0] ? convertToProductsCategory(result[0]) : null;
   }
 
-  async createProductsCategory(categoryData: CreateProductsCategoryRequest): Promise<ProductsCategory> {
-    const db = createDb(localConfig.dbUrl)
+  async createProductsCategory(
+    categoryData: CreateProductsCategoryRequest
+  ): Promise<ProductsCategory> {
+    const db = createDb(localConfig.dbUrl);
 
-    const result = await db.insert(productsCategory).values({
-      code: generateCode('CAT'),
-      name: categoryData.name.toLowerCase(),
-      totalProduct: 0,
-      status: categoryData.status === 'true' ? true : false,
-    }).returning();
+    const result = await db
+      .insert(productsCategory)
+      .values({
+        code: generateCode('CAT'),
+        name: categoryData.name.toLowerCase(),
+        totalProduct: 0,
+        status: categoryData.status === 'true' ? true : false,
+      })
+      .returning();
     return convertToProductsCategory(result[0]);
   }
 
-  async updateProductsCategory(id: string, updates: UpdateProductsCategoryRequest): Promise<
-    ProductsCategory | null
-  > {
-    const db = createDb(localConfig.dbUrl)
+  async updateProductsCategory(
+    id: string,
+    updates: UpdateProductsCategoryRequest
+  ): Promise<ProductsCategory | null> {
+    const db = createDb(localConfig.dbUrl);
 
     const updateData: any = { updatedAt: new Date() };
 
@@ -129,17 +122,17 @@ export class ProductsCategoryRepository {
         await tx
           .update(products)
           .set({ active: false })
-          .where(eq(products.categoryId, parseInt(id)))
+          .where(eq(products.categoryId, parseInt(id)));
       }
 
       return category[0] ? convertToProductsCategory(category[0]) : null;
-    })
+    });
 
-    return result
+    return result;
   }
 
   async deleteProductsCategory(id: string): Promise<ProductsCategory | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     return await db.transaction(async (tx) => {
       // delete category
@@ -153,9 +146,9 @@ export class ProductsCategoryRepository {
       await tx
         .update(products)
         .set({ active: false })
-        .where(eq(products.categoryId, parseInt(id)))
+        .where(eq(products.categoryId, parseInt(id)));
 
       return category[0] ? convertToProductsCategory(category[0]) : null;
-    })
+    });
   }
 }

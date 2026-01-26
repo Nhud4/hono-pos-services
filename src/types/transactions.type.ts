@@ -24,8 +24,8 @@ export interface OrderProduct {
   productId: number;
   qty: number;
   subtotal: number;
-  notes?: string
-  discount: number
+  notes?: string;
+  discount: number;
 }
 
 export interface CreateOrderRequest {
@@ -36,7 +36,7 @@ export interface CreateOrderRequest {
   totalDiscount: number;
   ppn: number;
   bill: number;
-  items: OrderProduct[]
+  items: OrderProduct[];
 }
 
 export interface CreateTransactionRequest extends CreateOrderRequest {
@@ -69,7 +69,7 @@ export interface GetOrderRequest {
 }
 
 export interface OrderData {
-  id: string | number
+  id: string | number;
   code: string | null;
   transactionDate: string;
   createdBy: string;
@@ -80,18 +80,18 @@ export interface OrderData {
   totalDiscount: number;
   ppn: number;
   bill: number;
-  items: OrderProduct[]
+  items: OrderProduct[];
 }
 
 export interface TrxItem {
   productId: number;
   qty: number;
-};
+}
 
 export interface ListTransactionRequest {
   page: string;
   size: string;
   search?: string;
   paymentStatus?: string;
-  date?: string
+  date?: string;
 }

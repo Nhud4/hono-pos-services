@@ -11,7 +11,10 @@ export class CompanyDomain {
     this.repo = new CompanyRepository();
   }
 
-  async getAllCompanies(limit: number = 50, offset: number = 0): Promise<{ data: Company[], meta: PaginationMeta }> {
+  async getAllCompanies(
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<{ data: Company[]; meta: PaginationMeta }> {
     const result = await this.repo.getAllCompanies(limit, offset);
 
     const meta: PaginationMeta = {
@@ -27,9 +30,9 @@ export class CompanyDomain {
   async getCompanyById(id: string): Promise<WrapperData> {
     const data = await this.repo.getCompanyById(id);
     if (!data) {
-      return wrapperData(null, DataNotFound())
+      return wrapperData(null, DataNotFound());
     }
-    return wrapperData(data, null)
+    return wrapperData(data, null);
   }
 
   async createCompany(companyData: CreateCompanyRequest): Promise<Company> {

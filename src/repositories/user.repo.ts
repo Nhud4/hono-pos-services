@@ -21,63 +21,71 @@ function convertToUser(drizzleUser: any): User {
 }
 
 export class UserRepository {
-  async getAllUsers(limit: number = 50, offset: number = 0): Promise<{ data: User[], total: number }> {
-    const db = createDb(localConfig.dbUrl)
+  async getAllUsers(
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<{ data: User[]; total: number }> {
+    const db = createDb(localConfig.dbUrl);
 
     const [dataResult, totalResult] = await Promise.all([
-      db.select().from(users).where(isNull(users.deletedAt)).orderBy(users.createdAt).limit(limit).offset(offset),
-      db.$count(users, isNull(users.deletedAt))
+      db
+        .select()
+        .from(users)
+        .where(isNull(users.deletedAt))
+        .orderBy(users.createdAt)
+        .limit(limit)
+        .offset(offset),
+      db.$count(users, isNull(users.deletedAt)),
     ]);
 
     return {
       data: dataResult.map(convertToUser),
-      total: totalResult
+      total: totalResult,
     };
   }
 
   async getUserById(id: string): Promise<User | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
-    const result = await db.select().from(users).where(
-      and(
-        eq(users.id, parseInt(id)),
-        isNull(users.deletedAt)
-      )
-    );
+    const result = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.id, parseInt(id)), isNull(users.deletedAt)));
     return result[0] ? convertToUser(result[0]) : null;
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
-    const result = await db.select().from(users).where(
-      and(
-        eq(users.username, username),
-        isNull(users.deletedAt)
-      )
-    );
+    const result = await db
+      .select()
+      .from(users)
+      .where(and(eq(users.username, username), isNull(users.deletedAt)));
     return result[0] ? convertToUser(result[0]) : null;
   }
 
   async createUser(userData: CreateUserRequest): Promise<User> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
-    const result = await db.insert(users).values({
-      code: generateCode('USR'),
-      name: userData.name,
-      role: userData.role,
-      username: userData.username,
-      password: hashedPassword,
-      active: true,
-      companyId: userData.companyId,
-    }).returning();
+    const result = await db
+      .insert(users)
+      .values({
+        code: generateCode('USR'),
+        name: userData.name,
+        role: userData.role,
+        username: userData.username,
+        password: hashedPassword,
+        active: true,
+        companyId: userData.companyId,
+      })
+      .returning();
 
     return convertToUser(result[0]);
   }
 
   async updateUser(id: string, updates: UpdateUserRequest): Promise<User | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
     const updateData: any = { updatedAt: new Date() };
 
     if (updates.name) updateData.name = updates.name;
@@ -97,7 +105,7 @@ export class UserRepository {
   }
 
   async deleteUser(id: string): Promise<boolean> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const result = await db
       .update(users)
@@ -108,16 +116,12 @@ export class UserRepository {
   }
 
   async verifyPassword(username: string, password: string): Promise<User | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
-    const result = await db.select()
+    const result = await db
+      .select()
       .from(users)
-      .where(
-        and(
-          eq(users.username, username),
-          isNull(users.deletedAt)
-        )
-      );
+      .where(and(eq(users.username, username), isNull(users.deletedAt)));
     if (!result[0] || !result[0].password) return null;
 
     const isValid = await bcrypt.compare(password, result[0].password);

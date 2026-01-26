@@ -3,7 +3,7 @@ import { basicAuth } from '../middlewares/basic-auth';
 import { jwtAuth } from '../middlewares/jwt-auth';
 import { validate } from '../middlewares/validate';
 import * as handler from '../handlers/product.handler';
-import * as schema from '../validators/product.validator'
+import * as schema from '../validators/product.validator';
 
 const router = new Hono();
 

@@ -8,20 +8,16 @@ export async function uploadImage(imageBuffer: Buffer, prefix: string): Promise<
 
     const supabase = createClient(localConfig.supabaseUrl, localConfig.supabaseAnonKey);
 
-    const { error } = await supabase.storage
-      .from('dev_resto')
-      .upload(fileName, imageBuffer, {
-        contentType: 'image/webp',
-        upsert: false
-      });
+    const { error } = await supabase.storage.from('dev_resto').upload(fileName, imageBuffer, {
+      contentType: 'image/webp',
+      upsert: false,
+    });
 
     if (error) {
       throw new Error(`Failed to upload image: ${error.message}`);
     }
 
-    const { data: urlData } = supabase.storage
-      .from('dev_resto')
-      .getPublicUrl(fileName);
+    const { data: urlData } = supabase.storage.from('dev_resto').getPublicUrl(fileName);
 
     return urlData.publicUrl;
   } catch (error) {

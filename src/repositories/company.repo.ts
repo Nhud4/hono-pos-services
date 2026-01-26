@@ -16,25 +16,28 @@ function convertToCompany(drizzleCompany: any): Company {
 }
 
 export class CompanyRepository {
-  async getAllCompanies(limit: number = 50, offset: number = 0): Promise<{
-    data: Company[],
-    total: number
+  async getAllCompanies(
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<{
+    data: Company[];
+    total: number;
   }> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const [dataResult, totalResult] = await Promise.all([
       db.select().from(company).orderBy(company.createdAt).limit(limit).offset(offset),
-      db.$count(company)
+      db.$count(company),
     ]);
 
     return {
       data: dataResult.map(convertToCompany),
-      total: totalResult
+      total: totalResult,
     };
   }
 
   async getCompanyById(id: string): Promise<Company | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const result = await db
       .select()
@@ -44,19 +47,22 @@ export class CompanyRepository {
   }
 
   async createCompany(companyData: CreateCompanyRequest): Promise<Company> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
-    const result = await db.insert(company).values({
-      name: companyData.name,
-      address: companyData.address,
-      phone: companyData.phone,
-      img: companyData.img,
-    }).returning();
+    const result = await db
+      .insert(company)
+      .values({
+        name: companyData.name,
+        address: companyData.address,
+        phone: companyData.phone,
+        img: companyData.img,
+      })
+      .returning();
     return convertToCompany(result[0]);
   }
 
   async updateCompany(id: string, updates: UpdateCompanyRequest): Promise<Company | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
     const updateData: any = { updatedAt: new Date() };
 
     if (updates.name !== undefined) updateData.name = updates.name;
@@ -74,7 +80,7 @@ export class CompanyRepository {
   }
 
   async deleteCompany(id: string): Promise<boolean> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const result = await db.delete(company).where(eq(company.id, parseInt(id)));
     return true;

@@ -35,81 +35,74 @@ export class ProductRepository {
     categoryId?: string,
     allocation?: string
   ) {
-    const db = createDb(localConfig.dbUrl)
-    const condition = [isNull(products.deletedAt)]
+    const db = createDb(localConfig.dbUrl);
+    const condition = [isNull(products.deletedAt)];
 
     if (search) {
-      condition.push(ilike(products.name, `%${search}%`))
+      condition.push(ilike(products.name, `%${search}%`));
     }
 
     if (categoryId) {
-      condition.push(eq(products.categoryId, Number(categoryId)))
+      condition.push(eq(products.categoryId, Number(categoryId)));
     }
 
     if (allocation) {
-      condition.push(eq(products.allocation, allocation))
+      condition.push(eq(products.allocation, allocation));
     }
-
 
     if (limit < 1) {
       const [dataResult, totalResult] = await Promise.all([
-        db.select().from(products)
+        db
+          .select()
+          .from(products)
           .where(and(...condition))
           .orderBy(products.createdAt)
           .innerJoin(productsCategory, eq(products.categoryId, productsCategory.id)),
-        db.$count(products, isNull(products.deletedAt))
+        db.$count(products, isNull(products.deletedAt)),
       ]);
       return { data: dataResult, total: totalResult };
     }
 
     const [dataResult, totalResult] = await Promise.all([
-      db.select().from(products)
+      db
+        .select()
+        .from(products)
         .where(and(...condition))
         .orderBy(products.createdAt)
         .limit(limit)
         .offset(offset)
         .innerJoin(productsCategory, eq(products.categoryId, productsCategory.id)),
-      db.$count(products, and(...condition))
+      db.$count(products, and(...condition)),
     ]);
     return { data: dataResult, total: totalResult };
   }
 
   async getProductById(id: string) {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const [result] = await db
       .select()
       .from(products)
-      .where(
-        and(
-          eq(products.id, parseInt(id)),
-          isNull(products.deletedAt)
-        )
-      )
-      .innerJoin(productsCategory, eq(products.categoryId, productsCategory.id))
+      .where(and(eq(products.id, parseInt(id)), isNull(products.deletedAt)))
+      .innerJoin(productsCategory, eq(products.categoryId, productsCategory.id));
     return result;
   }
 
   async getProductByName(name: string): Promise<Product | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const result = await db
       .select()
       .from(products)
-      .where(
-        and(
-          eq(products.name, name),
-          isNull(products.deletedAt)
-        )
-      );
+      .where(and(eq(products.name, name), isNull(products.deletedAt)));
     return result[0] ? convertToProduct(result[0]) : null;
   }
 
   async createProduct(product: CreateProductRequest): Promise<Product> {
-    const db = createDb(localConfig.dbUrl)
-    let discountPrice = 0
+    const db = createDb(localConfig.dbUrl);
+    let discountPrice = 0;
     if (product.discount && parseInt(product.discount) > 0) {
-      discountPrice = parseInt(product.normalPrice) * parseInt(product.discount) / 100
+      discountPrice = (parseInt(product.normalPrice) * parseInt(product.discount)) / 100;
     }
 
     const doc = {
@@ -126,33 +119,35 @@ export class ProductRepository {
       stock: parseInt(product.stock),
       allocation: product.allocation,
       img: product.img,
-      discountPrice
-    }
+      discountPrice,
+    };
 
     const result = await db.transaction(async (tx) => {
       const product = await tx.insert(products).values(doc).returning();
 
       // get category
-      const [category] = await tx.select()
+      const [category] = await tx
+        .select()
         .from(productsCategory)
         .where(eq(productsCategory.id, doc.categoryId))
-        .limit(1)
+        .limit(1);
 
       // update category
-      await tx.update(productsCategory)
+      await tx
+        .update(productsCategory)
         .set({ totalProduct: (category.totalProduct || 0) + 1 })
-        .where(eq(productsCategory.id, doc.categoryId))
+        .where(eq(productsCategory.id, doc.categoryId));
 
-      return product
-    })
+      return product;
+    });
     return convertToProduct(result[0]);
   }
 
   async updateProduct(id: string, updates: UpdateProductRequest): Promise<Product | null> {
-    const db = createDb(localConfig.dbUrl)
-    let discountPrice = 0
+    const db = createDb(localConfig.dbUrl);
+    let discountPrice = 0;
     if (updates.discount && parseInt(updates.discount) > 0) {
-      discountPrice = parseInt(updates.normalPrice) * parseInt(updates.discount) / 100
+      discountPrice = (parseInt(updates.normalPrice) * parseInt(updates.discount)) / 100;
     }
 
     const updateData = {
@@ -167,7 +162,7 @@ export class ProductRepository {
       active: updates.active === 'true' ? true : false,
       stock: parseInt(updates.stock),
       updatedAt: new Date(),
-      discountPrice
+      discountPrice,
     };
 
     const result = await db
@@ -180,28 +175,30 @@ export class ProductRepository {
   }
 
   async deleteProduct(id: string): Promise<Product | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const result = await db.transaction(async (tx) => {
-      const [remove] = await tx.
-        update(products)
+      const [remove] = await tx
+        .update(products)
         .set({ deletedAt: new Date() })
         .where(eq(products.id, parseInt(id)))
-        .returning()
+        .returning();
 
       // get category
-      const [category] = await tx.select()
+      const [category] = await tx
+        .select()
         .from(productsCategory)
         .where(eq(productsCategory.id, remove.categoryId as number))
-        .limit(1)
+        .limit(1);
 
       // update category
-      await tx.update(productsCategory)
+      await tx
+        .update(productsCategory)
         .set({ totalProduct: (category.totalProduct || 0) + 1 })
-        .where(eq(productsCategory.id, remove.categoryId as number))
+        .where(eq(productsCategory.id, remove.categoryId as number));
 
-      return remove
-    })
+      return remove;
+    });
 
     return result ? convertToProduct(result) : null; // Drizzle doesn't return affected rows, assume success
   }

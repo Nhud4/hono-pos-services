@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { basicAuth } from '../middlewares/basic-auth';
 import { validate } from '../middlewares/validate';
 import * as handler from '../handlers/user.handler';
-import * as schema from '../validators/user.validator'
+import * as schema from '../validators/user.validator';
 import { jwtAuth } from '../middlewares/jwt-auth';
 import { allowOrigin } from '../utils/allowOrigin';
 
@@ -26,7 +26,8 @@ router.post(
   '/users',
   basicAuth(),
   validate('json', schema.createUserSchema),
-  handler.createUserHandler);
+  handler.createUserHandler
+);
 router.put(
   '/users/:id',
   jwtAuth(),

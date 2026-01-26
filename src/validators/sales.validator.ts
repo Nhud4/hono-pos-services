@@ -18,6 +18,6 @@ export const saleIdSchema = z.object({
   id: z.string().regex(/^\d+$/, 'Invalid sale ID'),
 });
 
-export type CreateSaleSchema = z.infer<typeof createSaleSchema>
-export type UpdateSaleSchema = z.infer<typeof updateSaleSchema>
-export type SaleIdSchema = z.infer<typeof saleIdSchema>
+export type CreateSaleSchema = z.infer<typeof createSaleSchema>;
+export type UpdateSaleSchema = z.infer<typeof updateSaleSchema>;
+export type SaleIdSchema = z.infer<typeof saleIdSchema>;

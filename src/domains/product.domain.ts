@@ -8,7 +8,7 @@ import {
   Product,
   CreateProductRequest,
   UpdateProductRequest,
-  ListProductRequest
+  ListProductRequest,
 } from '../types/product.type';
 
 export class ProductDomain {
@@ -17,12 +17,12 @@ export class ProductDomain {
 
   constructor() {
     this.repo = new ProductRepository();
-    this.category = new ProductsCategoryRepository()
+    this.category = new ProductsCategoryRepository();
   }
 
   async getAllProducts(params: ListProductRequest): Promise<WrapperMetaData> {
-    const limit = parseInt(params.size)
-    const offset = limit > 0 ? (parseInt(params.page) - 1) * limit : 0
+    const limit = parseInt(params.size);
+    const offset = limit > 0 ? (parseInt(params.page) - 1) * limit : 0;
 
     const { data, total } = await this.repo.getAllProducts(
       limit,
@@ -52,9 +52,9 @@ export class ProductDomain {
       img: prd.img,
       category: {
         id: cat.id,
-        name: cat.name
-      }
-    }))
+        name: cat.name,
+      },
+    }));
 
     return { data: newData, meta };
   }
@@ -62,35 +62,35 @@ export class ProductDomain {
   async getProductById(id: string): Promise<WrapperData> {
     const data = await this.repo.getProductById(id);
     if (!data) {
-      return wrapperData(null, DataNotFound())
+      return wrapperData(null, DataNotFound());
     }
 
     const newData = {
       ...data.products,
       category: {
         id: data.products_category.id,
-        name: data.products_category.name
-      }
-    }
+        name: data.products_category.name,
+      },
+    };
 
-    return wrapperData(newData, null)
+    return wrapperData(newData, null);
   }
 
   async createProduct(productData: CreateProductRequest): Promise<WrapperData> {
     // check name
-    const checkName = await this.repo.getProductByName(productData.name.toLowerCase())
+    const checkName = await this.repo.getProductByName(productData.name.toLowerCase());
     if (checkName) {
-      return wrapperData(null, BadRequest('Nama produk sudah digunakan'))
+      return wrapperData(null, BadRequest('Nama produk sudah digunakan'));
     }
 
     // check category
-    const checkCategory = await this.category.getProductsCategoryById(productData.categoryId)
+    const checkCategory = await this.category.getProductsCategoryById(productData.categoryId);
     if (!checkCategory) {
-      return wrapperData(null, DataNotFound('Kategori tidak ditemukan'))
+      return wrapperData(null, DataNotFound('Kategori tidak ditemukan'));
     }
 
     const { img, ...rest } = productData;
-    let imgUrl = ''
+    let imgUrl = '';
     if (img) {
       let imageBuffer: Buffer;
       if (typeof img === 'object' && img && 'arrayBuffer' in img) {
@@ -105,31 +105,31 @@ export class ProductDomain {
 
     const result = await this.repo.createProduct({ ...rest, img: imgUrl });
 
-    return wrapperData(result, null)
+    return wrapperData(result, null);
   }
 
   async updateProduct(id: string, updates: UpdateProductRequest): Promise<WrapperData> {
     this.validateUpdateProduct(updates);
     // check data id
-    const checkId = await this.repo.getProductById(id)
+    const checkId = await this.repo.getProductById(id);
     if (!checkId) {
-      return wrapperData(null, DataNotFound())
+      return wrapperData(null, DataNotFound());
     }
 
     // check name
-    const checkName = await this.repo.getProductByName(updates.name.toLowerCase())
+    const checkName = await this.repo.getProductByName(updates.name.toLowerCase());
     if (checkName && checkName.id !== id) {
-      return wrapperData(null, BadRequest('Nama produk sudah digunakan'))
+      return wrapperData(null, BadRequest('Nama produk sudah digunakan'));
     }
 
     // check category
-    const checkCategory = await this.category.getProductsCategoryById(updates.categoryId)
+    const checkCategory = await this.category.getProductsCategoryById(updates.categoryId);
     if (!checkCategory) {
-      return wrapperData(null, DataNotFound('Kategori tidak ditemukan'))
+      return wrapperData(null, DataNotFound('Kategori tidak ditemukan'));
     }
 
     const { img, ...rest } = updates;
-    let imgUrl = ''
+    let imgUrl = '';
     if (img) {
       let imageBuffer: Buffer;
       if (typeof img === 'object' && img && 'arrayBuffer' in img) {
@@ -143,18 +143,18 @@ export class ProductDomain {
     }
 
     const result = await this.repo.updateProduct(id, { ...rest, img: imgUrl });
-    return wrapperData(result, null)
+    return wrapperData(result, null);
   }
 
   async deleteProduct(id: string): Promise<WrapperData> {
     // check data id
-    const checkId = await this.repo.getProductById(id)
+    const checkId = await this.repo.getProductById(id);
     if (!checkId) {
-      return wrapperData(null, DataNotFound())
+      return wrapperData(null, DataNotFound());
     }
 
     const result = await this.repo.deleteProduct(id);
-    return wrapperData({ code: result?.code }, null)
+    return wrapperData({ code: result?.code }, null);
   }
 
   private validateUpdateProduct(updates: UpdateProductRequest): void {

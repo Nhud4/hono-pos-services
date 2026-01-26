@@ -7,7 +7,7 @@ import {
   transactionCounters,
   transactionProducts,
   users,
-  products
+  products,
 } from '../../drizzle/schema';
 import {
   Transaction,
@@ -20,7 +20,7 @@ import {
 
 export class TransactionsRepository {
   async getOrderByUser(id: string) {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const [result] = await db
       .select()
@@ -29,16 +29,18 @@ export class TransactionsRepository {
         and(
           eq(transactions.userId, parseInt(id)),
           eq(transactions.transactionType, 'cart'),
-          isNull(transactions.deletedAt),
+          isNull(transactions.deletedAt)
         )
-      )
+      );
 
     if (!result) return null;
 
-    const product = await db.select().from(transactionProducts)
-      .where(eq(transactionProducts.transactionId, result.id))
+    const product = await db
+      .select()
+      .from(transactionProducts)
+      .where(eq(transactionProducts.transactionId, result.id));
 
-    return { transaction: result, product }
+    return { transaction: result, product };
   }
 
   async createOrder(user: GetOrderRequest, doc: CreateOrderRequest): Promise<{ code: string }> {
@@ -84,9 +86,8 @@ export class TransactionsRepository {
       return { code: newOrder.code || '' };
     });
 
-    return result
+    return result;
   }
-
 
   async getAllTransactions(
     limit: number,
@@ -95,90 +96,87 @@ export class TransactionsRepository {
     date?: string,
     paymentStatus?: string
   ) {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
     const condition = [
       isNull(transactions.deletedAt),
       eq(transactions.transactionType, 'transaction'),
-    ]
+    ];
 
     if (search) {
       condition.push(sql`
       ${transactions.customerName} ilike ${`%${search}%`} 
       or ${transactions.code} ilike ${`%${search}%`}
-      `)
+      `);
     }
 
     if (date) {
-      condition.push(ilike(transactions.transactionDate, `${date}%`))
+      condition.push(ilike(transactions.transactionDate, `${date}%`));
     }
 
     if (paymentStatus) {
-      condition.push(eq(transactions.paymentStatus, paymentStatus))
+      condition.push(eq(transactions.paymentStatus, paymentStatus));
     }
 
     if (limit > 0) {
       const [result, total] = await Promise.all([
-        db.select()
+        db
+          .select()
           .from(transactions)
           .where(and(...condition))
           .orderBy(desc(transactions.createdAt))
           .limit(limit)
           .offset(offset)
           .fullJoin(users, eq(transactions.userId, users.id)),
-        db.$count(
-          transactions,
-          and(...condition)
-        )
-      ])
+        db.$count(transactions, and(...condition)),
+      ]);
 
-      return { data: result, total }
+      return { data: result, total };
     }
 
     const [result, total] = await Promise.all([
-      db.select()
+      db
+        .select()
         .from(transactions)
         .where(and(...condition))
         .orderBy(desc(transactions.createdAt))
         .fullJoin(users, eq(transactions.userId, users.id)),
-      db.$count(
-        transactions,
-        and(...condition)
-      )
-    ])
+      db.$count(transactions, and(...condition)),
+    ]);
 
-    return { data: result, total }
+    return { data: result, total };
   }
 
   async getTransactionById(id: string) {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
-    const [result] = await db.select().from(transactions)
-      .where(and(
-        eq(transactions.id, parseInt(id)),
-        isNull(transactions.deletedAt)
-      ))
+    const [result] = await db
+      .select()
+      .from(transactions)
+      .where(and(eq(transactions.id, parseInt(id)), isNull(transactions.deletedAt)))
       .limit(1)
-      .leftJoin(users, eq(transactions.userId, users.id))
+      .leftJoin(users, eq(transactions.userId, users.id));
 
-    if (!result) return null
-    const { transactions: trxData, users: userData } = result
+    if (!result) return null;
+    const { transactions: trxData, users: userData } = result;
 
-    const product = await db.select().from(transactionProducts)
+    const product = await db
+      .select()
+      .from(transactionProducts)
       .where(eq(transactionProducts.transactionId, trxData.id))
-      .innerJoin(products, eq(transactionProducts.productId, products.id))
+      .innerJoin(products, eq(transactionProducts.productId, products.id));
 
     return { transaction: trxData, userData, product };
   }
 
   async generateTransactionCode(prefix: string) {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
-    const now = new Date()
-    const yy = String(now.getFullYear()).slice(-2)
-    const mm = String(now.getMonth() + 1).padStart(2, '0')
-    const dd = String(now.getDate()).padStart(2, '0')
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(-2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
 
-    const dateKey = `${now.getFullYear()}${mm}${dd}`
+    const dateKey = `${now.getFullYear()}${mm}${dd}`;
 
     const [counter] = await db
       .insert(transactionCounters)
@@ -193,11 +191,11 @@ export class TransactionsRepository {
           lastNumber: sql`${transactionCounters.lastNumber} + 1`,
         },
       })
-      .returning()
+      .returning();
 
-    const seq = String(counter.lastNumber).padStart(4, '0')
+    const seq = String(counter.lastNumber).padStart(4, '0');
 
-    return `${prefix}-${yy}${mm}${dd}${seq}`
+    return `${prefix}-${yy}${mm}${dd}${seq}`;
   }
 
   async createTransaction(user: GetOrderRequest, payload: CreateTransactionRequest) {
@@ -218,8 +216,8 @@ export class TransactionsRepository {
       paymentType: payload.paymentType,
       paymentMethod: payload.paymentMethod,
       paymentStatus: payload.paymentStatus,
-      payment: payload.payment
-    }
+      payment: payload.payment,
+    };
 
     const result = await db.transaction(async (tx) => {
       // generate code
@@ -258,33 +256,33 @@ export class TransactionsRepository {
       return { code: newOrder.code || '' };
     });
 
-    return result
+    return result;
   }
 
   async updateTransaction(id: string, updates: UpdateTransactionRequest) {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
     const doc: Partial<InferInsertModel<typeof transactions>> = {
       payment: updates.payment,
-      updatedAt: new Date()
-    }
+      updatedAt: new Date(),
+    };
 
     if (updates.transactionType) {
-      doc.transactionType = updates.transactionType
+      doc.transactionType = updates.transactionType;
     }
     if (updates.customerName) {
-      doc.customerName = updates.customerName
+      doc.customerName = updates.customerName;
     }
     if (updates.tableNumber) {
-      doc.tableNumber = updates.tableNumber.toString()
+      doc.tableNumber = updates.tableNumber.toString();
     }
     if (updates.paymentType) {
-      doc.paymentType = updates.paymentType
+      doc.paymentType = updates.paymentType;
     }
     if (updates.paymentMethod) {
-      doc.paymentMethod = updates.paymentMethod
+      doc.paymentMethod = updates.paymentMethod;
     }
     if (updates.paymentStatus) {
-      doc.paymentStatus = updates.paymentStatus
+      doc.paymentStatus = updates.paymentStatus;
     }
 
     const [result] = await db
@@ -297,13 +295,13 @@ export class TransactionsRepository {
   }
 
   async deleteTransaction(id: string) {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const [result] = await db
       .update(transactions)
       .set({ deletedAt: new Date() })
       .where(eq(transactions.id, Number(id)))
-      .returning()
+      .returning();
 
     return result;
   }

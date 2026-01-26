@@ -1,5 +1,10 @@
-import { ContentfulStatusCode } from "hono/utils/http-status";
-import { ApiResponse, ErrorCustomType, WrapperData, PaginationMeta } from "../types/wrapper.type.js";
+import { ContentfulStatusCode } from 'hono/utils/http-status';
+import {
+  ApiResponse,
+  ErrorCustomType,
+  WrapperData,
+  PaginationMeta,
+} from '../types/wrapper.type.js';
 
 export const createResponse = <T = any>(
   success: boolean,
@@ -36,10 +41,13 @@ export const errorResponse = (
   return createResponse(false, code, data, message);
 };
 
-export const wrapperData = <T = any>(data: T | null, error: ErrorCustomType | null): WrapperData => {
+export const wrapperData = <T = any>(
+  data: T | null,
+  error: ErrorCustomType | null
+): WrapperData => {
   if (error) {
-    return { data: null, error: errorResponse(error.message, error.code) }
+    return { data: null, error: errorResponse(error.message, error.code) };
   }
 
-  return { data, error: null }
-}
+  return { data, error: null };
+};

@@ -1,4 +1,13 @@
-import { pgTable, serial, varchar, boolean, timestamp, text, integer, primaryKey } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  serial,
+  varchar,
+  boolean,
+  timestamp,
+  text,
+  integer,
+  primaryKey,
+} from 'drizzle-orm/pg-core';
 
 export const company = pgTable('company', {
   id: serial('id').primaryKey(),
@@ -126,13 +135,17 @@ export const refundTransactions = pgTable('refund_transactions', {
   deletedAt: timestamp('deletedAt'),
 });
 
-export const transactionCounters = pgTable('transaction_counters', {
-  prefix: text('prefix').notNull(),
-  date: text('date').notNull(),
-  lastNumber: integer('last_number').notNull(),
-}, (table) => ({
-  pk: primaryKey({ columns: [table.prefix, table.date] }),
-}))
+export const transactionCounters = pgTable(
+  'transaction_counters',
+  {
+    prefix: text('prefix').notNull(),
+    date: text('date').notNull(),
+    lastNumber: integer('last_number').notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.prefix, table.date] }),
+  })
+);
 
 // Type exports
 export type Company = typeof company.$inferSelect;

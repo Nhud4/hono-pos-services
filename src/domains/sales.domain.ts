@@ -11,7 +11,10 @@ export class SalesDomain {
     this.repo = new SalesRepository();
   }
 
-  async getAllSales(limit: number = 50, offset: number = 0): Promise<{ data: Sale[], meta: PaginationMeta }> {
+  async getAllSales(
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<{ data: Sale[]; meta: PaginationMeta }> {
     const result = await this.repo.getAllSales(limit, offset);
     const meta: PaginationMeta = {
       page: Math.floor(offset / limit) + 1,
@@ -25,9 +28,9 @@ export class SalesDomain {
   async getSaleById(id: string): Promise<WrapperData> {
     const data = await this.repo.getSaleById(id);
     if (!data) {
-      return wrapperData(null, DataNotFound())
+      return wrapperData(null, DataNotFound());
     }
-    return wrapperData(data, null)
+    return wrapperData(data, null);
   }
 
   async createSale(saleData: CreateSaleRequest): Promise<Sale> {

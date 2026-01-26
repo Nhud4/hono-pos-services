@@ -18,40 +18,49 @@ function convertToSale(drizzleSale: any): Sale {
 }
 
 export class SalesRepository {
-  async getAllSales(limit: number = 50, offset: number = 0): Promise<{ data: Sale[], total: number }> {
-    const db = createDb(localConfig.dbUrl)
+  async getAllSales(
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<{ data: Sale[]; total: number }> {
+    const db = createDb(localConfig.dbUrl);
 
     const [dataResult, totalResult] = await Promise.all([
       db.select().from(sales).orderBy(sales.createdAt).limit(limit).offset(offset),
-      db.$count(sales)
+      db.$count(sales),
     ]);
     return {
       data: dataResult.map(convertToSale),
-      total: totalResult
+      total: totalResult,
     };
   }
 
   async getSaleById(id: string): Promise<Sale | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
-    const result = await db.select().from(sales).where(eq(sales.id, parseInt(id)));
+    const result = await db
+      .select()
+      .from(sales)
+      .where(eq(sales.id, parseInt(id)));
     return result[0] ? convertToSale(result[0]) : null;
   }
 
   async createSale(saleData: CreateSaleRequest): Promise<Sale> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
-    const result = await db.insert(sales).values({
-      productId: saleData.productId,
-      sales: saleData.sales,
-      income: saleData.income,
-      grossIncome: saleData.grossIncome,
-    }).returning();
+    const result = await db
+      .insert(sales)
+      .values({
+        productId: saleData.productId,
+        sales: saleData.sales,
+        income: saleData.income,
+        grossIncome: saleData.grossIncome,
+      })
+      .returning();
     return convertToSale(result[0]);
   }
 
   async updateSale(id: string, updates: UpdateSaleRequest): Promise<Sale | null> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
     const updateData: any = { updatedAt: new Date() };
 
     if (updates.productId !== undefined) updateData.productId = updates.productId;
@@ -69,7 +78,7 @@ export class SalesRepository {
   }
 
   async deleteSale(id: string): Promise<boolean> {
-    const db = createDb(localConfig.dbUrl)
+    const db = createDb(localConfig.dbUrl);
 
     const result = await db.delete(sales).where(eq(sales.id, parseInt(id)));
     return true;
