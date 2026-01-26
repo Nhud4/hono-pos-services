@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, gte, isNull, lte } from 'drizzle-orm';
 import { createDb } from '../libs/db';
 import localConfig from '../libs/config';
 import { sales } from '../../drizzle/schema';
@@ -19,10 +19,26 @@ function convertToSale(drizzleSale: any): Sale {
 
 export class SalesRepository {
   async getAllSales(
-    limit: number = 50,
-    offset: number = 0
+    limit: number,
+    offset: number,
+    productId?: string,
+    date?: string
   ): Promise<{ data: Sale[]; total: number }> {
     const db = createDb(localConfig.dbUrl);
+    const condition = [isNull(sales.deletedAt)];
+
+    if (productId) {
+      condition.push(eq(sales.productId, Number(productId)));
+    }
+    if (date) {
+      const start = new Date(date);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(date);
+      end.setHours(23, 59, 59, 999);
+
+      condition.push(gte(sales.createdAt, start), lte(sales.createdAt, end));
+    }
 
     const [dataResult, totalResult] = await Promise.all([
       db.select().from(sales).orderBy(sales.createdAt).limit(limit).offset(offset),
