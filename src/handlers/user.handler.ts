@@ -14,6 +14,7 @@ const domain = new UserDomain();
 export const getAllUsersHandler = async (c: Context) => {
   try {
     const params = c.get('payload') as ListUserSchema
+    console.log(c.req.header('referer'))
 
     const { data, meta } = await domain.getAllUsers(params);
 

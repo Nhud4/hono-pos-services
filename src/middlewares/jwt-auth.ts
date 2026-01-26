@@ -5,8 +5,11 @@ import localConfig from '../libs/config'
 
 export type JwtUser = {
   id: string
-  role?: string
-  email?: string
+  role: string
+  email: string
+  username: string,
+  name: string,
+  exp: string,
 }
 
 export const jwtAuth =
@@ -21,7 +24,7 @@ export const jwtAuth =
       const token = auth.slice(7)
 
       try {
-        const payload = await verify(token, localConfig.jwt, 'HS256') as JwtUser
+        const payload = await verify(token, localConfig.jwt, 'HS256') as unknown as JwtUser
         c.set('user', payload)
         await next()
       } catch {
