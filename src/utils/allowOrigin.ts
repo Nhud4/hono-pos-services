@@ -1,7 +1,6 @@
 import { Context, Next } from 'hono';
 import { errorResponse } from './wrapper';
 import { JwtUser } from '../middlewares/jwt-auth';
-import { use } from 'hono/jsx';
 
 const ALLOWED_ORIGINS = {
   cashier: ['http://localhost:5173', 'https://cashier-web-apps.vercel.app'],
