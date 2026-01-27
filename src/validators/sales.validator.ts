@@ -7,4 +7,15 @@ export const listSalesSchema = z.object({
   month: z.string().optional(),
 });
 
+export const summarySalesSchema = z.object({
+  productId: z.string().optional(),
+  month: z.string().optional(),
+});
+
+export const yearsSalesSchema = z.object({
+  year: z.string().optional(),
+});
+
 export type ListSalesSchema = z.infer<typeof listSalesSchema>;
+export type SummarySalesSchema = z.infer<typeof summarySalesSchema>;
+export type YearsSalesSchema = z.infer<typeof yearsSalesSchema>;

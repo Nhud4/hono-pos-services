@@ -24,6 +24,28 @@ export class SalesRepository {
     return { start, end };
   }
 
+  getYearRange(year: number) {
+    const start = new Date(year, 0, 1, 0, 0, 0, 0);
+    const end = new Date(year, 11, 31, 23, 59, 59, 999);
+    return { start, end };
+  }
+
+  normalizeMonthlyData(rows: { month: number; revenue: number }[]) {
+    const map = new Map<number, number>();
+
+    rows.forEach((row) => {
+      map.set(Number(row.month), Number(row.revenue));
+    });
+
+    return Array.from({ length: 12 }, (_, i) => {
+      const month = i + 1;
+      return {
+        month,
+        revenue: map.get(month) ?? 0,
+      };
+    });
+  }
+
   async getAllSales(limit: number, offset: number, productId?: string, month?: string) {
     const db = createDb(localConfig.dbUrl);
 
@@ -83,5 +105,65 @@ export class SalesRepository {
       data: dataResult,
       total: totalResult[0]?.count ?? 0,
     };
+  }
+
+  async getMonthlySummary(month: number, year: number, productId?: string) {
+    const db = createDb(localConfig.dbUrl);
+    const { start, end } = this.getMonthRange(month, year);
+
+    const conditions = [
+      isNull(transactionProducts.deletedAt),
+      gte(transactionProducts.createdAt, start),
+      lte(transactionProducts.createdAt, end),
+    ];
+
+    if (productId) {
+      conditions.push(eq(transactionProducts.productId, Number(productId)));
+    }
+
+    const result = await db
+      .select({
+        totalRevenue: sql<number>`
+        COALESCE(SUM(${transactionProducts.subtotal}), 0)
+      `,
+        totalTransaction: sql<number>`
+        COUNT(DISTINCT ${transactionProducts.transactionId})
+      `,
+      })
+      .from(transactionProducts)
+      .where(and(...conditions));
+
+    return result[0];
+  }
+
+  async getYearlyRevenueChart(year: number, productId?: number) {
+    const db = createDb(localConfig.dbUrl);
+    const { start, end } = this.getYearRange(year);
+
+    const conditions = [
+      isNull(transactionProducts.deletedAt),
+      gte(transactionProducts.createdAt, start),
+      lte(transactionProducts.createdAt, end),
+    ];
+
+    if (productId) {
+      conditions.push(eq(transactionProducts.productId, productId));
+    }
+    const monthExpr = sql<number>`
+    EXTRACT(MONTH FROM ${transactionProducts.createdAt})
+  `;
+    const result = await db
+      .select({
+        month: monthExpr,
+        revenue: sql<number>`
+        COALESCE(SUM(${transactionProducts.subtotal}), 0)
+      `,
+      })
+      .from(transactionProducts)
+      .where(and(...conditions))
+      .groupBy(monthExpr)
+      .orderBy(monthExpr);
+
+    return this.normalizeMonthlyData(result);
   }
 }

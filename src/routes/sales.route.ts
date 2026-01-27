@@ -16,4 +16,20 @@ router.get(
   handler.getAllSalesHandler
 );
 
+router.get(
+  '/sales/summary',
+  jwtAuth(),
+  allowOrigin(['manager']),
+  validate('query', schema.summarySalesSchema),
+  handler.summarySales
+);
+
+router.get(
+  '/sales/year',
+  jwtAuth(),
+  allowOrigin(['manager']),
+  validate('query', schema.yearsSalesSchema),
+  handler.yearSales
+);
+
 export default router;
