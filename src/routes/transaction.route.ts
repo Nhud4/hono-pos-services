@@ -15,14 +15,14 @@ router.post('/order', jwtAuth(), validate('json', schema.createOrderSchema), han
 router.get(
   '/transaction',
   jwtAuth(),
-  allowOrigin(['cashier', 'manager']),
+  allowOrigin(['cashier', 'manager', 'kitchen']),
   validate('query', schema.listTransactionSchema),
   handler.listTransaction
 );
 router.get(
   '/transaction/:id',
   jwtAuth(),
-  allowOrigin(['cashier', 'manager']),
+  allowOrigin(['cashier', 'manager', 'kitchen']),
   validate('param', schema.transactionIdSchema),
   handler.detailTransaction
 );
@@ -36,7 +36,7 @@ router.post(
 router.put(
   '/transaction/:id',
   jwtAuth(),
-  allowOrigin(['cashier']),
+  allowOrigin(['manager']),
   validate('json', schema.updateTransactionSchema),
   handler.updateTransaction
 );
