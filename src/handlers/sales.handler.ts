@@ -9,7 +9,7 @@ export const getAllSalesHandler = async (c: Context) => {
   try {
     const params = c.get('payload') as ListSalesSchema;
 
-    const { data, meta } = await domain.getAllSales(params);
+    const { data, meta } = await domain.listProductSales(params);
 
     return c.json(successResponse(data, 'Sales retrieved successfully', 200, meta));
   } catch (error) {

@@ -1,8 +1,8 @@
-import { eq, gte, isNull, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import { createDb } from '../libs/db';
 import localConfig from '../libs/config';
-import { sales } from '../../drizzle/schema';
-import { Sale, CreateSaleRequest, UpdateSaleRequest } from '../types/sales.type';
+import { products, transactionProducts } from '../../drizzle/schema';
+import { Sale } from '../types/sales.type';
 
 // Helper function to convert Drizzle result to our Sale type
 function convertToSale(drizzleSale: any): Sale {
@@ -18,85 +18,70 @@ function convertToSale(drizzleSale: any): Sale {
 }
 
 export class SalesRepository {
-  async getAllSales(
-    limit: number,
-    offset: number,
-    productId?: string,
-    date?: string
-  ): Promise<{ data: Sale[]; total: number }> {
+  getMonthRange(month: number, year: number) {
+    const start = new Date(year, month - 1, 1, 0, 0, 0, 0);
+    const end = new Date(year, month, 0, 23, 59, 59, 999);
+    return { start, end };
+  }
+
+  async getAllSales(limit: number, offset: number, productId?: string, month?: string) {
     const db = createDb(localConfig.dbUrl);
-    const condition = [isNull(sales.deletedAt)];
+
+    const condition = [isNull(transactionProducts.deletedAt)];
 
     if (productId) {
-      condition.push(eq(sales.productId, Number(productId)));
+      condition.push(eq(transactionProducts.productId, Number(productId)));
     }
-    if (date) {
-      const start = new Date(date);
-      start.setHours(0, 0, 0, 0);
 
-      const end = new Date(date);
-      end.setHours(23, 59, 59, 999);
+    const year = new Date().getFullYear();
+    const newMonth = month ? Number(month) : new Date().getMonth() + 1;
+    const { start, end } = this.getMonthRange(newMonth, year);
+    condition.push(
+      gte(transactionProducts.createdAt, start),
+      lte(transactionProducts.createdAt, end)
+    );
 
-      condition.push(gte(sales.createdAt, start), lte(sales.createdAt, end));
-    }
+    const whereClause = and(...condition);
+
+    const saleDate = sql`DATE(${transactionProducts.createdAt})`;
 
     const [dataResult, totalResult] = await Promise.all([
-      db.select().from(sales).orderBy(sales.createdAt).limit(limit).offset(offset),
-      db.$count(sales),
+      db
+        .select({
+          productId: products.id,
+          name: products.name,
+          date: saleDate.as('date'),
+          totalQty: sql<number>`SUM(${transactionProducts.qty})`,
+          totalAmount: sql<number>`SUM(${transactionProducts.subtotal})`,
+        })
+        .from(transactionProducts)
+        .where(whereClause)
+        .groupBy(products.id, saleDate)
+        .orderBy(desc(saleDate))
+        .limit(limit)
+        .offset(offset)
+        .innerJoin(products, eq(transactionProducts.productId, products.id)),
+
+      db
+        .select({
+          count: sql<number>`COUNT(*)`,
+        })
+        .from(
+          db
+            .select({
+              productId: transactionProducts.productId,
+              date: saleDate,
+            })
+            .from(transactionProducts)
+            .where(whereClause)
+            .groupBy(transactionProducts.productId, saleDate)
+            .as('grouped')
+        ),
     ]);
+
     return {
-      data: dataResult.map(convertToSale),
-      total: totalResult,
+      data: dataResult,
+      total: totalResult[0]?.count ?? 0,
     };
-  }
-
-  async getSaleById(id: string): Promise<Sale | null> {
-    const db = createDb(localConfig.dbUrl);
-
-    const result = await db
-      .select()
-      .from(sales)
-      .where(eq(sales.id, parseInt(id)));
-    return result[0] ? convertToSale(result[0]) : null;
-  }
-
-  async createSale(saleData: CreateSaleRequest): Promise<Sale> {
-    const db = createDb(localConfig.dbUrl);
-
-    const result = await db
-      .insert(sales)
-      .values({
-        productId: saleData.productId,
-        sales: saleData.sales,
-        income: saleData.income,
-        grossIncome: saleData.grossIncome,
-      })
-      .returning();
-    return convertToSale(result[0]);
-  }
-
-  async updateSale(id: string, updates: UpdateSaleRequest): Promise<Sale | null> {
-    const db = createDb(localConfig.dbUrl);
-    const updateData: any = { updatedAt: new Date() };
-
-    if (updates.productId !== undefined) updateData.productId = updates.productId;
-    if (updates.sales !== undefined) updateData.sales = updates.sales;
-    if (updates.income !== undefined) updateData.income = updates.income;
-    if (updates.grossIncome !== undefined) updateData.grossIncome = updates.grossIncome;
-
-    const result = await db
-      .update(sales)
-      .set(updateData)
-      .where(eq(sales.id, parseInt(id)))
-      .returning();
-
-    return result[0] ? convertToSale(result[0]) : null;
-  }
-
-  async deleteSale(id: string): Promise<boolean> {
-    const db = createDb(localConfig.dbUrl);
-
-    const result = await db.delete(sales).where(eq(sales.id, parseInt(id)));
-    return true;
   }
 }
