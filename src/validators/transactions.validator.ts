@@ -23,7 +23,7 @@ export const createOrderSchema = z.object({
 export const createTransactionSchema = z.object({
   createdBy: z.string().optional(),
   transactionType: z.enum(['transaction']),
-  customerName: z.string(),
+  customerName: z.string().nonempty('Nama pelanggan tidak boleh kosong'),
   tableNumber: z.number().positive('Nomor meja harus lebih dari 0'),
   paymentType: z.enum(['later', 'now']),
   paymentMethod: z.string().optional(),
