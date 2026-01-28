@@ -201,57 +201,84 @@ export class TransactionsRepository {
   async createTransaction(user: GetOrderRequest, payload: CreateTransactionRequest) {
     const db = createDb(localConfig.dbUrl);
     const userId = Number(user.id);
-    const doc = {
-      userId,
-      transactionDate: payload.transactionDate,
-      transactionType: payload.transactionType,
-      deliveryType: payload.deliveryType,
-      subtotal: payload.subtotal,
-      totalDiscount: payload.totalDiscount,
-      ppn: payload.ppn,
-      bill: payload.bill,
-      createdBy: user.name,
-      customerName: payload.customerName,
-      tableNumber: payload.tableNumber.toString(),
-      paymentType: payload.paymentType,
-      paymentMethod: payload.paymentMethod,
-      paymentStatus: payload.paymentStatus,
-      payment: payload.payment,
-    };
 
     const result = await db.transaction(async (tx) => {
-      // generate code
-      const code = await this.generateTransactionCode('TRX');
+      // Generate code dengan Drizzle (type-safe)
+      const now = new Date();
+      const yy = String(now.getFullYear()).slice(-2);
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const dateKey = `${now.getFullYear()}${mm}${dd}`;
 
-      // insert transaksi baru
+      const [counter] = await tx
+        .insert(transactionCounters)
+        .values({
+          prefix: 'TRX',
+          date: dateKey,
+          lastNumber: 1,
+        })
+        .onConflictDoUpdate({
+          target: [transactionCounters.prefix, transactionCounters.date],
+          set: {
+            lastNumber: sql.raw(`"transaction_counters"."last_number" + 1`),
+          },
+        })
+        .returning({ lastNumber: transactionCounters.lastNumber });
+
+      const seq = String(counter.lastNumber).padStart(4, '0');
+      const code = `TRX-${yy}${mm}${dd}${seq}`;
+
+      // Insert transaksi baru
       const [newOrder] = await tx
         .insert(transactions)
         .values({
-          ...doc,
+          userId,
           code,
+          transactionDate: payload.transactionDate,
+          transactionType: payload.transactionType,
+          deliveryType: payload.deliveryType,
+          subtotal: payload.subtotal,
+          totalDiscount: payload.totalDiscount,
+          ppn: payload.ppn,
+          bill: payload.bill,
+          createdBy: user.name,
+          customerName: payload.customerName,
+          tableNumber: payload.tableNumber.toString(),
+          paymentType: payload.paymentType,
+          paymentMethod: payload.paymentMethod,
+          paymentStatus: payload.paymentStatus,
+          payment: payload.payment,
         })
-        .returning();
+        .returning({ id: transactions.id, code: transactions.code });
 
-      // insert item
-      const items = payload.items.map((i) => ({
-        transactionId: newOrder.id,
-        productId: i.productId,
-        qty: i.qty,
-        subtotal: i.subtotal,
-        discount: i.discount,
-        notes: i.notes ?? null,
-      }));
-      await tx.insert(transactionProducts).values(items);
+      // Bulk insert items
+      if (payload.items.length > 0) {
+        const itemsValues = payload.items.map((i) => ({
+          transactionId: newOrder.id,
+          productId: i.productId,
+          qty: i.qty,
+          subtotal: i.subtotal,
+          discount: i.discount,
+          notes: i.notes ?? null,
+        }));
 
-      // update stock
-      await tx.execute(sql`
-        UPDATE products
-        SET stock = stock - tp.qty
-        FROM transaction_products tp
-        WHERE products.id = tp."productId"
-          AND tp."transactionId" = ${newOrder.id}
-          AND products.stock >= tp.qty
-      `);
+        await tx.insert(transactionProducts).values(itemsValues);
+
+        // Update stock dengan CTE
+        await tx.execute(sql`
+          WITH items_to_update AS (
+            SELECT "productId", SUM(qty) as total_qty
+            FROM transaction_products
+            WHERE "transactionId" = ${newOrder.id}
+            GROUP BY "productId"
+          )
+          UPDATE products
+          SET stock = products.stock - items_to_update.total_qty
+          FROM items_to_update
+          WHERE products.id = items_to_update."productId"
+            AND products.stock >= items_to_update.total_qty
+        `);
+      }
 
       return { code: newOrder.code || '' };
     });

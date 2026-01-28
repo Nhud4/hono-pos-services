@@ -43,6 +43,13 @@
       "when": 1769309271054,
       "tag": "0005_bitter_wendell_vaughn",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1769590381345,
+      "tag": "0006_lonely_master_chief",
+      "breakpoints": true
     }
   ]
 }

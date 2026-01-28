@@ -7,6 +7,8 @@ import {
   text,
   integer,
   primaryKey,
+  index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const company = pgTable('company', {
@@ -46,26 +48,34 @@ export const productsCategory = pgTable('products_category', {
   deletedAt: timestamp('deletedAt'),
 });
 
-export const products = pgTable('products', {
-  id: serial('id').primaryKey(),
-  code: varchar('code', { length: 16 }).unique(),
-  categoryId: integer('categoryId').references(() => productsCategory.id),
-  name: varchar('name'),
-  description: text('description'),
-  normalPrice: integer('normalPrice'),
-  hpp: integer('hpp'),
-  discount: integer('discount'),
-  discountType: varchar('discountType'),
-  stock: integer('stock'),
-  active: boolean('active'),
-  available: boolean('available'),
-  img: varchar('img'),
-  allocation: varchar('allocation'),
-  discountPrice: integer('discountPrice'),
-  createdAt: timestamp('createdAt').defaultNow(),
-  updatedAt: timestamp('updatedAt').defaultNow(),
-  deletedAt: timestamp('deletedAt'),
-});
+export const products = pgTable(
+  'products',
+  {
+    id: serial('id').primaryKey(),
+    code: varchar('code', { length: 16 }).unique(),
+    categoryId: integer('categoryId').references(() => productsCategory.id),
+    name: varchar('name'),
+    description: text('description'),
+    normalPrice: integer('normalPrice'),
+    hpp: integer('hpp'),
+    discount: integer('discount'),
+    discountType: varchar('discountType'),
+    stock: integer('stock'),
+    active: boolean('active'),
+    available: boolean('available'),
+    img: varchar('img'),
+    allocation: varchar('allocation'),
+    discountPrice: integer('discountPrice'),
+    createdAt: timestamp('createdAt').defaultNow(),
+    updatedAt: timestamp('updatedAt').defaultNow(),
+    deletedAt: timestamp('deletedAt'),
+  },
+  (table) => ({
+    nameIdx: index('idx_products_name').on(table.name),
+    stockIdx: index('idx_products_stock').on(table.stock),
+    idStockIdx: index('idx_products_id_stock').on(table.id, table.stock),
+  })
+);
 
 export const sales = pgTable('sales', {
   id: serial('id').primaryKey(),
@@ -78,41 +88,58 @@ export const sales = pgTable('sales', {
   deletedAt: timestamp('deletedAt'),
 });
 
-export const transactions = pgTable('transactions', {
-  id: serial('id').primaryKey(),
-  code: varchar('code', { length: 16 }).unique(),
-  transactionDate: varchar('transactionDate'),
-  createdBy: varchar('createdBy'),
-  userId: integer('userId').references(() => users.id),
-  transactionType: varchar('transactionType'),
-  customerName: varchar('customerName'),
-  deliveryType: varchar('deliveryType'),
-  tableNumber: varchar('tableNumber'),
-  paymentType: varchar('paymentType'),
-  paymentMethod: varchar('paymentMethod'),
-  paymentStatus: varchar('paymentStatus'),
-  subtotal: integer('subtotal'),
-  totalDiscount: integer('totalDiscount'),
-  ppn: integer('ppn'),
-  bill: integer('bill'),
-  payment: integer('payment'),
-  createdAt: timestamp('createdAt').defaultNow(),
-  updatedAt: timestamp('updatedAt').defaultNow(),
-  deletedAt: timestamp('deletedAt'),
-});
+export const transactions = pgTable(
+  'transactions',
+  {
+    id: serial('id').primaryKey(),
+    code: varchar('code', { length: 16 }).unique(),
+    transactionDate: varchar('transactionDate'),
+    createdBy: varchar('createdBy'),
+    userId: integer('userId').references(() => users.id),
+    transactionType: varchar('transactionType'),
+    customerName: varchar('customerName'),
+    deliveryType: varchar('deliveryType'),
+    tableNumber: varchar('tableNumber'),
+    paymentType: varchar('paymentType'),
+    paymentMethod: varchar('paymentMethod'),
+    paymentStatus: varchar('paymentStatus'),
+    subtotal: integer('subtotal'),
+    totalDiscount: integer('totalDiscount'),
+    ppn: integer('ppn'),
+    bill: integer('bill'),
+    payment: integer('payment'),
+    createdAt: timestamp('createdAt').defaultNow(),
+    updatedAt: timestamp('updatedAt').defaultNow(),
+    deletedAt: timestamp('deletedAt'),
+  },
+  (table) => ({
+    userIdIdx: index('idx_transactions_user_id').on(table.userId),
+    codeIdx: index('idx_transactions_code').on(table.code),
+    dateIdx: index('idx_transactions_date').on(table.transactionDate),
+    userDateIdx: index('idx_transactions_user_date').on(table.userId, table.transactionDate),
+  })
+);
 
-export const transactionProducts = pgTable('transaction_products', {
-  id: serial('id').primaryKey(),
-  transactionId: integer('transactionId').references(() => transactions.id),
-  productId: integer('productId').references(() => products.id),
-  qty: integer('qty'),
-  subtotal: integer('subtotal'),
-  discount: integer('discount'),
-  notes: text('notes'),
-  createdAt: timestamp('createdAt').defaultNow(),
-  updatedAt: timestamp('updatedAt').defaultNow(),
-  deletedAt: timestamp('deletedAt'),
-});
+export const transactionProducts = pgTable(
+  'transaction_products',
+  {
+    id: serial('id').primaryKey(),
+    transactionId: integer('transactionId').references(() => transactions.id),
+    productId: integer('productId').references(() => products.id),
+    qty: integer('qty'),
+    subtotal: integer('subtotal'),
+    discount: integer('discount'),
+    notes: text('notes'),
+    createdAt: timestamp('createdAt').defaultNow(),
+    updatedAt: timestamp('updatedAt').defaultNow(),
+    deletedAt: timestamp('deletedAt'),
+  },
+  (table) => ({
+    transactionIdIdx: index('idx_tp_transaction_id').on(table.transactionId),
+    productIdIdx: index('idx_tp_product_id').on(table.productId),
+    bothIdx: index('idx_tp_transaction_product').on(table.transactionId, table.productId),
+  })
+);
 
 export const transactionPrint = pgTable('transaction_print', {
   id: serial('id').primaryKey(),
@@ -144,6 +171,8 @@ export const transactionCounters = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.prefix, table.date] }),
+    prefixDateIdx: index('idx_tc_prefix_date').on(table.prefix, table.date),
+    prefixDateUnique: uniqueIndex('uq_tc_prefix_date').on(table.prefix, table.date),
   })
 );
 
