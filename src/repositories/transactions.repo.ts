@@ -202,88 +202,118 @@ export class TransactionsRepository {
     const db = createDb(localConfig.dbUrl);
     const userId = Number(user.id);
 
-    const result = await db.transaction(async (tx) => {
-      // Generate code dengan Drizzle (type-safe)
-      const now = new Date();
-      const yy = String(now.getFullYear()).slice(-2);
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const dateKey = `${now.getFullYear()}${mm}${dd}`;
+    console.log('[1] Start transaction');
+    const startTime = Date.now();
 
-      const [counter] = await tx
-        .insert(transactionCounters)
-        .values({
-          prefix: 'TRX',
-          date: dateKey,
-          lastNumber: 1,
-        })
-        .onConflictDoUpdate({
-          target: [transactionCounters.prefix, transactionCounters.date],
-          set: {
-            lastNumber: sql.raw(`"transaction_counters"."last_number" + 1`),
-          },
-        })
-        .returning({ lastNumber: transactionCounters.lastNumber });
+    try {
+      const result = await db.transaction(async (tx) => {
+        console.log('[2] Inside transaction, generating code...');
+        const codeStart = Date.now();
 
-      const seq = String(counter.lastNumber).padStart(4, '0');
-      const code = `TRX-${yy}${mm}${dd}${seq}`;
+        // Generate code
+        const now = new Date();
+        const yy = String(now.getFullYear()).slice(-2);
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const dateKey = `${now.getFullYear()}${mm}${dd}`;
 
-      // Insert transaksi baru
-      const [newOrder] = await tx
-        .insert(transactions)
-        .values({
-          userId,
-          code,
-          transactionDate: payload.transactionDate,
-          transactionType: payload.transactionType,
-          deliveryType: payload.deliveryType,
-          subtotal: payload.subtotal,
-          totalDiscount: payload.totalDiscount,
-          ppn: payload.ppn,
-          bill: payload.bill,
-          createdBy: user.name,
-          customerName: payload.customerName,
-          tableNumber: payload.tableNumber.toString(),
-          paymentType: payload.paymentType,
-          paymentMethod: payload.paymentMethod,
-          paymentStatus: payload.paymentStatus,
-          payment: payload.payment,
-        })
-        .returning({ id: transactions.id, code: transactions.code });
+        const [counter] = await tx
+          .insert(transactionCounters)
+          .values({
+            prefix: 'TRX',
+            date: dateKey,
+            lastNumber: 1,
+          })
+          .onConflictDoUpdate({
+            target: [transactionCounters.prefix, transactionCounters.date],
+            set: {
+              lastNumber: sql.raw(`"transaction_counters"."last_number" + 1`),
+            },
+          })
+          .returning({ lastNumber: transactionCounters.lastNumber });
 
-      // Bulk insert items
-      if (payload.items.length > 0) {
-        const itemsValues = payload.items.map((i) => ({
-          transactionId: newOrder.id,
-          productId: i.productId,
-          qty: i.qty,
-          subtotal: i.subtotal,
-          discount: i.discount,
-          notes: i.notes ?? null,
-        }));
+        console.log(`[3] Code generated in ${Date.now() - codeStart}ms`);
 
-        await tx.insert(transactionProducts).values(itemsValues);
+        const seq = String(counter.lastNumber).padStart(4, '0');
+        const code = `TRX-${yy}${mm}${dd}${seq}`;
 
-        // Update stock dengan CTE
-        await tx.execute(sql`
-          WITH items_to_update AS (
-            SELECT "productId", SUM(qty) as total_qty
-            FROM transaction_products
-            WHERE "transactionId" = ${newOrder.id}
-            GROUP BY "productId"
-          )
-          UPDATE products
-          SET stock = products.stock - items_to_update.total_qty
-          FROM items_to_update
-          WHERE products.id = items_to_update."productId"
-            AND products.stock >= items_to_update.total_qty
-        `);
-      }
+        // Insert transaction
+        console.log('[4] Inserting transaction...');
+        const txStart = Date.now();
 
-      return { code: newOrder.code || '' };
-    });
+        const [newOrder] = await tx
+          .insert(transactions)
+          .values({
+            userId,
+            code,
+            transactionDate: payload.transactionDate,
+            transactionType: payload.transactionType,
+            deliveryType: payload.deliveryType,
+            subtotal: payload.subtotal,
+            totalDiscount: payload.totalDiscount,
+            ppn: payload.ppn,
+            bill: payload.bill,
+            createdBy: user.name,
+            customerName: payload.customerName,
+            tableNumber: payload.tableNumber.toString(),
+            paymentType: payload.paymentType,
+            paymentMethod: payload.paymentMethod,
+            paymentStatus: payload.paymentStatus,
+            payment: payload.payment,
+          })
+          .returning({ id: transactions.id, code: transactions.code });
 
-    return result;
+        console.log(`[5] Transaction inserted in ${Date.now() - txStart}ms`);
+
+        // Insert items
+        if (payload.items.length > 0) {
+          console.log(`[6] Inserting ${payload.items.length} items...`);
+          const itemsStart = Date.now();
+
+          const itemsValues = payload.items.map((i) => ({
+            transactionId: newOrder.id,
+            productId: i.productId,
+            qty: i.qty,
+            subtotal: i.subtotal,
+            discount: i.discount,
+            notes: i.notes ?? null,
+          }));
+
+          await tx.insert(transactionProducts).values(itemsValues);
+
+          console.log(`[7] Items inserted in ${Date.now() - itemsStart}ms`);
+
+          // Update stock
+          console.log('[8] Updating stock...');
+          const stockStart = Date.now();
+
+          await tx.execute(sql`
+            WITH items_to_update AS (
+              SELECT "productId", SUM(qty) as total_qty
+              FROM transaction_products
+              WHERE "transactionId" = ${newOrder.id}
+              GROUP BY "productId"
+            )
+            UPDATE products
+            SET stock = products.stock - items_to_update.total_qty
+            FROM items_to_update
+            WHERE products.id = items_to_update."productId"
+              AND products.stock >= items_to_update.total_qty
+          `);
+
+          console.log(`[9] Stock updated in ${Date.now() - stockStart}ms`);
+        }
+
+        console.log(`[10] Total transaction time: ${Date.now() - startTime}ms`);
+        return { code: newOrder.code || '' };
+      });
+
+      return result;
+    } catch (error) {
+      console.error('[ERROR] Transaction failed:', error);
+      console.error('[ERROR] Total time before failure:', Date.now() - startTime, 'ms');
+      throw error;
+    }
   }
 
   async updateTransaction(id: string, updates: UpdateTransactionRequest) {
