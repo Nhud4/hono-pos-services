@@ -36,7 +36,7 @@ router.post(
 router.put(
   '/transaction/:id',
   jwtAuth(),
-  allowOrigin(['manager']),
+  allowOrigin(['cashier', 'manager']),
   validate('json', schema.updateTransactionSchema),
   handler.updateTransaction
 );
