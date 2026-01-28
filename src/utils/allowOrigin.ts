@@ -24,18 +24,18 @@ export function allowOrigin(role: string[]) {
     if (source) {
       const allowedOrigins = ALLOWED_ORIGINS[user.role as keyof typeof ALLOWED_ORIGINS];
       if (!allowedOrigins) {
-        return c.json(errorResponse('Akses ditolak', 403), 403);
+        return c.json(errorResponse('Akses url ditolak', 403), 403);
       }
 
       const isAllowed = allowedOrigins.some((allowed) => source.startsWith(allowed));
       if (!isAllowed) {
-        return c.json(errorResponse('Akses ditolak', 403), 403);
+        return c.json(errorResponse('Akses url ditolak', 403), 403);
       }
     }
 
     const allowedRole = role.includes(user.role);
     if (!allowedRole) {
-      return c.json(errorResponse('Akses ditolak', 403), 403);
+      return c.json(errorResponse('Akses user ditolak', 403), 403);
     }
 
     await next();

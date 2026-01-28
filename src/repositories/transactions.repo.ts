@@ -188,7 +188,7 @@ export class TransactionsRepository {
       .onConflictDoUpdate({
         target: [transactionCounters.prefix, transactionCounters.date],
         set: {
-          lastNumber: sql`${transactionCounters.lastNumber} + 1`,
+          lastNumber: sql.raw(`"transaction_counters"."last_number" + 1`),
         },
       })
       .returning();
