@@ -240,12 +240,8 @@
           "name": "products_categoryId_products_category_id_fk",
           "tableFrom": "products",
           "tableTo": "products_category",
-          "columnsFrom": [
-            "categoryId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["categoryId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -255,9 +251,7 @@
         "products_code_unique": {
           "name": "products_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -326,9 +320,7 @@
         "products_category_code_unique": {
           "name": "products_category_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -396,12 +388,8 @@
           "name": "refund_transactions_transactionId_transactions_id_fk",
           "tableFrom": "refund_transactions",
           "tableTo": "transactions",
-          "columnsFrom": [
-            "transactionId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["transactionId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -411,9 +399,7 @@
         "refund_transactions_code_unique": {
           "name": "refund_transactions_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -481,12 +467,8 @@
           "name": "sales_productId_products_id_fk",
           "tableFrom": "sales",
           "tableTo": "products",
-          "columnsFrom": [
-            "productId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["productId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -568,10 +550,7 @@
       "compositePrimaryKeys": {
         "transaction_counters_prefix_date_pk": {
           "name": "transaction_counters_prefix_date_pk",
-          "columns": [
-            "prefix",
-            "date"
-          ]
+          "columns": ["prefix", "date"]
         }
       },
       "uniqueConstraints": {},
@@ -634,12 +613,8 @@
           "name": "transaction_print_transactionId_transactions_id_fk",
           "tableFrom": "transaction_print",
           "tableTo": "transactions",
-          "columnsFrom": [
-            "transactionId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["transactionId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -775,12 +750,8 @@
           "name": "transaction_products_transactionId_transactions_id_fk",
           "tableFrom": "transaction_products",
           "tableTo": "transactions",
-          "columnsFrom": [
-            "transactionId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["transactionId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -788,12 +759,8 @@
           "name": "transaction_products_productId_products_id_fk",
           "tableFrom": "transaction_products",
           "tableTo": "products",
-          "columnsFrom": [
-            "productId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["productId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1004,12 +971,8 @@
           "name": "transactions_userId_users_id_fk",
           "tableFrom": "transactions",
           "tableTo": "users",
-          "columnsFrom": [
-            "userId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["userId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1019,9 +982,7 @@
         "transactions_code_unique": {
           "name": "transactions_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -1113,12 +1074,8 @@
           "name": "users_companyId_company_id_fk",
           "tableFrom": "users",
           "tableTo": "company",
-          "columnsFrom": [
-            "companyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["companyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1128,9 +1085,7 @@
         "users_code_unique": {
           "name": "users_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
