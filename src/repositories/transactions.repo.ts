@@ -207,7 +207,52 @@ export class TransactionsRepository {
 
     try {
       const result = await db.transaction(async (tx) => {
-        console.log('[2] Inside transaction, generating code...');
+        console.log('[2] Inside transaction, validating stock and generating code...');
+        const stockValidationStart = Date.now();
+
+        // Lock and validate stock for all products using FOR UPDATE
+        // This prevents race conditions by locking the rows until transaction commits
+        const productIds = payload.items.map((i) => i.productId);
+
+        // Use raw SQL with FOR UPDATE to lock the product rows
+        const lockedProductsResult = await tx.execute(
+          sql<
+            { id: number; name: string; stock: number }[]
+          >`SELECT id, name, stock FROM products WHERE id IN (${sql.join(productIds, sql`, `)}) FOR UPDATE`
+        );
+
+        const lockedProducts =
+          (lockedProductsResult as unknown as { id: number; name: string; stock: number }[]) || [];
+
+        // Check if all products exist
+        const foundProductIds = new Set(lockedProducts.map((p) => p.id));
+        const missingProductIds = productIds.filter((id) => !foundProductIds.has(id));
+        if (missingProductIds.length > 0) {
+          throw new Error(`Products not found: ${missingProductIds.join(', ')}`);
+        }
+
+        // Validate stock availability
+        const stockErrors: string[] = [];
+        for (const item of payload.items) {
+          const product = lockedProducts.find((p) => p.id === item.productId);
+          if (product) {
+            const availableStock = product.stock ?? 0;
+            if (item.qty > availableStock) {
+              stockErrors.push(
+                `Insufficient stock for product ${product.name}. Available: ${availableStock}, Requested: ${item.qty}`
+              );
+            }
+          }
+        }
+
+        if (stockErrors.length > 0) {
+          throw new Error(stockErrors.join('; '));
+        }
+
+        console.log(`[3] Stock validated in ${Date.now() - stockValidationStart}ms`);
+
+        // Generate code
+        console.log('[4] Generating code...');
         const codeStart = Date.now();
 
         // Generate code
@@ -232,13 +277,13 @@ export class TransactionsRepository {
           })
           .returning({ lastNumber: transactionCounters.lastNumber });
 
-        console.log(`[3] Code generated in ${Date.now() - codeStart}ms`);
+        console.log(`[5] Code generated in ${Date.now() - codeStart}ms`);
 
         const seq = String(counter.lastNumber).padStart(4, '0');
         const code = `TRX-${yy}${mm}${dd}${seq}`;
 
         // Insert transaction
-        console.log('[4] Inserting transaction...');
+        console.log('[6] Inserting transaction...');
         const txStart = Date.now();
 
         const [newOrder] = await tx
@@ -263,11 +308,11 @@ export class TransactionsRepository {
           })
           .returning({ id: transactions.id, code: transactions.code });
 
-        console.log(`[5] Transaction inserted in ${Date.now() - txStart}ms`);
+        console.log(`[7] Transaction inserted in ${Date.now() - txStart}ms`);
 
         // Insert items
         if (payload.items.length > 0) {
-          console.log(`[6] Inserting ${payload.items.length} items...`);
+          console.log(`[8] Inserting ${payload.items.length} items...`);
           const itemsStart = Date.now();
 
           const itemsValues = payload.items.map((i) => ({
@@ -281,10 +326,10 @@ export class TransactionsRepository {
 
           await tx.insert(transactionProducts).values(itemsValues);
 
-          console.log(`[7] Items inserted in ${Date.now() - itemsStart}ms`);
+          console.log(`[9] Items inserted in ${Date.now() - itemsStart}ms`);
 
-          // Update stock
-          console.log('[8] Updating stock...');
+          // Update stock atomically with the locked rows
+          console.log('[10] Updating stock...');
           const stockStart = Date.now();
 
           await tx.execute(sql`
@@ -301,10 +346,10 @@ export class TransactionsRepository {
               AND products.stock >= items_to_update.total_qty
           `);
 
-          console.log(`[9] Stock updated in ${Date.now() - stockStart}ms`);
+          console.log(`[11] Stock updated in ${Date.now() - stockStart}ms`);
         }
 
-        console.log(`[10] Total transaction time: ${Date.now() - startTime}ms`);
+        console.log(`[12] Total transaction time: ${Date.now() - startTime}ms`);
         return { code: newOrder.code || '' };
       });
 
