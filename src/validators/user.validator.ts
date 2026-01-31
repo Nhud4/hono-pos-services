@@ -15,28 +15,17 @@ export const createUserSchema = z.object({
   companyId: z.number(),
 });
 
-export const updateUserSchema = z
-  .object({
-    name: z.string().nonempty('Nama tidak boleh kosong').min(3, 'Nama harus lebih dari 3 karakter'),
-    role: z.enum(['cashier', 'waiters', 'kitchen', 'manager', 'inventory']),
-    username: z
-      .string()
-      .nonempty('Username tidak boleh kosong')
-      .min(4, 'Username harus lebih dari 4 karakter'),
-    password: z.string().optional(),
-    active: z.enum(['true', 'false']),
-    companyId: z.number().optional(),
-  })
-  .refine(
-    (data) => {
-      if (!data.password) return true;
-      if (data.password && data.password?.length < 6) return false;
-    },
-    {
-      message: 'Password harus lebih dari 6 karakter',
-      path: ['password'],
-    }
-  );
+export const updateUserSchema = z.object({
+  name: z.string().nonempty('Nama tidak boleh kosong').min(3, 'Nama harus lebih dari 3 karakter'),
+  role: z.enum(['cashier', 'waiters', 'kitchen', 'manager', 'inventory']),
+  username: z
+    .string()
+    .nonempty('Username tidak boleh kosong')
+    .min(4, 'Username harus lebih dari 4 karakter'),
+  password: z.string().optional(),
+  active: z.enum(['true', 'false']),
+  companyId: z.number().optional(),
+});
 
 export const userIdSchema = z.object({
   id: z.string().regex(/^\d+$/, 'ID tidak valid'),
