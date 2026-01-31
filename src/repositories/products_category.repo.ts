@@ -94,6 +94,7 @@ export class ProductsCategoryRepository {
         name: categoryData.name.toLowerCase(),
         totalProduct: 0,
         status: categoryData.status === 'true' ? true : false,
+        printTarget: categoryData.printTarget,
       })
       .returning();
     return convertToProductsCategory(result[0]);
