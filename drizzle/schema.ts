@@ -43,6 +43,7 @@ export const productsCategory = pgTable('products_category', {
   name: varchar('name'),
   totalProduct: integer('totalProduct'),
   status: boolean('status'),
+  printTarget: varchar('printTarget'),
   createdAt: timestamp('createdAt').defaultNow(),
   updatedAt: timestamp('updatedAt').defaultNow(),
   deletedAt: timestamp('deletedAt'),

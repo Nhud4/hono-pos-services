@@ -104,7 +104,10 @@ export class ProductsCategoryRepository {
   ): Promise<ProductsCategory | null> {
     const db = createDb(localConfig.dbUrl);
 
-    const updateData: any = { updatedAt: new Date() };
+    const updateData: any = {
+      updatedAt: new Date(),
+      printTarget: updates.printTarget,
+    };
 
     if (updates.name) updateData.name = updates.name;
     if (updates.status) updateData.status = updates.status === 'true' ? true : false;

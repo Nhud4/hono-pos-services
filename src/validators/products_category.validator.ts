@@ -6,6 +6,7 @@ export const createProductsCategorySchema = z.object({
     .nonempty('Nama kategori tidak boleh kosong')
     .min(4, 'Nama kategori harus lebih dari 4 karakter'),
   status: z.enum(['true', 'false']),
+  printTarget: z.string().nonempty('Target print tidak boleh kosong'),
 });
 
 export const updateProductsCategorySchema = z.object({
@@ -14,6 +15,7 @@ export const updateProductsCategorySchema = z.object({
     .nonempty('Nama kategori tidak boleh kosong')
     .min(4, 'Nama kategori harus lebih dari 4 karakter'),
   status: z.enum(['true', 'false']),
+  printTarget: z.string().nonempty('Target print tidak boleh kosong'),
 });
 
 export const productsCategoryIdSchema = z.object({

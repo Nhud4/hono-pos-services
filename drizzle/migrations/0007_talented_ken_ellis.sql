@@ -1,0 +1,1 @@
+ALTER TABLE "products_category" ADD COLUMN "printTarget" varchar;

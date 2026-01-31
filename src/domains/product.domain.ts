@@ -53,6 +53,7 @@ export class ProductDomain {
       category: {
         id: cat.id,
         name: cat.name,
+        printTarget: cat.printTarget,
       },
     }));
 

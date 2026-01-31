@@ -11,11 +11,13 @@ export interface ProductsCategory {
 export interface CreateProductsCategoryRequest {
   name: string;
   status?: string;
+  printTarget: string;
 }
 
 export interface UpdateProductsCategoryRequest {
   name: string;
   status: string;
+  printTarget: string;
 }
 
 export interface ListProductsCategoryRequest {
