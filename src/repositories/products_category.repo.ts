@@ -17,6 +17,7 @@ function convertToProductsCategory(drizzleCategory: any): ProductsCategory {
     name: drizzleCategory.name,
     totalProduct: drizzleCategory.totalProduct,
     status: drizzleCategory.status,
+    printTarget: drizzleCategory.printTarget,
   };
 }
 

@@ -6,6 +6,7 @@ export interface ProductsCategory {
   status: boolean;
   created_at?: string;
   updated_at?: string;
+  printTarget?: string;
 }
 
 export interface CreateProductsCategoryRequest {
