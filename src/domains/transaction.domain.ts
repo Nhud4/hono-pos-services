@@ -137,16 +137,19 @@ export class TransactionDomain {
         code: userData?.code,
         name: userData?.name,
       },
-      items: product.map(({ products: prd, transaction_products: trp }) => ({
-        id: prd.id,
-        name: prd.name,
-        price: prd.normalPrice,
-        discountPrice: prd.discountPrice,
-        discount: prd.discount,
-        note: trp.notes,
-        qty: trp.qty,
-        subtotal: trp.subtotal,
-      })),
+      items: product.map(
+        ({ products: prd, transaction_products: trp, products_category: pct }) => ({
+          id: prd.id,
+          name: prd.name,
+          price: prd.normalPrice,
+          discountPrice: prd.discountPrice,
+          discount: prd.discount,
+          note: trp.notes,
+          qty: trp.qty,
+          subtotal: trp.subtotal,
+          printTarget: pct.printTarget,
+        })
+      ),
     };
 
     return wrapperData(data, null);

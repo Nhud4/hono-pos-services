@@ -8,6 +8,7 @@ import {
   transactionProducts,
   users,
   products,
+  productsCategory,
 } from '../../drizzle/schema';
 import {
   Transaction,
@@ -163,7 +164,8 @@ export class TransactionsRepository {
       .select()
       .from(transactionProducts)
       .where(eq(transactionProducts.transactionId, trxData.id))
-      .innerJoin(products, eq(transactionProducts.productId, products.id));
+      .innerJoin(products, eq(transactionProducts.productId, products.id))
+      .innerJoin(productsCategory, eq(products.categoryId, productsCategory.id));
 
     return { transaction: trxData, userData, product };
   }
